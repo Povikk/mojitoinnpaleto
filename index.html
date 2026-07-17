@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#063f43">
+  <title>Mojito Inn — Système d’ardoise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Pacifico&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <header class="brand">
+      <span class="brand__eyebrow">Bienvenue au</span>
+      <h1>Mojito Inn</h1>
+      <p>Système d’ardoise</p>
+      <button class="operator" id="open-name" type="button"><span>👤</span><b id="operator-name">Choisir mon nom</b></button>
+    </header>
+
+    <section class="card balance-card" aria-labelledby="balance-title">
+      <div class="balance-top">
+        <div>
+          <p class="label" id="balance-title">Ardoise restante</p>
+          <p class="updated" id="updated">À jour maintenant</p>
+        </div>
+        <button class="add-fab" id="open-add" type="button" aria-label="Ajouter à l’ardoise">＋</button>
+      </div>
+      <div class="sync-status" id="sync-status"><i></i><span>Connexion…</span></div>
+      <div class="balance" id="balance">0,00 €</div>
+      <div class="progress"><span id="progress"></span></div>
+      <p class="balance-note" id="balance-note">L’ardoise est vide — tout est réglé !</p>
+    </section>
+
+    <section class="card action-card">
+      <div class="section-heading"><span>La carte</span><small>Touchez pour ajouter au panier</small></div>
+      <div class="price-section">
+        <div class="price-title"><span>🌴 Prix classique</span></div>
+        <div class="product-grid">
+          <button class="product" data-price="400" data-name="Alcool"><span>🥃</span><b>Alcool</b><strong>400</strong></button>
+          <button class="product" data-price="450" data-name="Cocktail"><span>🍸</span><b>Cocktail</b><strong>450</strong></button>
+        </div>
+      </div>
+      <div class="price-section">
+        <div class="price-title"><span>🌅 Happy hour</span><small>Prix doux</small></div>
+        <div class="product-grid">
+          <button class="product" data-price="300" data-name="Alcool · Happy hour"><span>🥃</span><b>Alcool</b><strong>300</strong></button>
+          <button class="product" data-price="350" data-name="Cocktail · Happy hour"><span>🍹</span><b>Cocktail</b><strong>350</strong></button>
+        </div>
+      </div>
+      <div class="product-grid extras">
+        <button class="product" data-price="100" data-name="Soft"><span>🥤</span><b>Soft</b><strong>100</strong></button>
+        <button class="product" data-price="500" data-name="Menu"><span>🍽️</span><b>Menu</b><strong>500</strong></button>
+      </div>
+      <form class="custom-row" id="custom-form">
+        <div><b>Montant libre</b><small>Pour un prix personnalisé</small></div>
+        <div class="custom-input"><input id="custom-amount" inputmode="decimal" placeholder="0" aria-label="Montant libre"><button type="submit">＋</button></div>
+      </form>
+      <div class="cart" id="cart">
+        <div class="cart-head"><div><b>À valider</b><small id="cart-count">Aucun article</small></div><strong id="cart-total">0</strong></div>
+        <ul id="cart-lines"></ul>
+        <div class="cart-actions"><button type="button" id="undo-item">↶ Annuler le dernier</button><button type="button" id="clear-cart">Vider</button></div>
+        <button class="submit cart-submit" type="button" id="validate-cart" disabled>Valider et déduire</button>
+      </div>
+    </section>
+
+    <section class="card history-card">
+      <div class="section-title">
+        <div><span>Dernières opérations</span><small id="count">0 opération</small></div>
+        <button class="reset" id="reset" type="button">Remettre à zéro</button>
+      </div>
+      <ul id="history" class="history"></ul>
+    </section>
+    <footer>🌴 Mojito Inn · Les pieds dans le sable</footer>
+  </main>
+  <dialog class="modal" id="add-modal">
+    <form id="add-form" method="dialog">
+      <button class="modal-close" id="close-add" type="button" aria-label="Fermer">×</button>
+      <span class="modal-icon">🌺</span>
+      <h2>Ajouter à l’ardoise</h2>
+      <p>Quel montant veux-tu ajouter au solde ?</p>
+      <label for="add-amount">Montant</label>
+      <div class="amount-input">
+        <input id="add-amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0" required>
+      </div>
+      <button class="submit add" type="submit">Ajouter le montant</button>
+    </form>
+  </dialog>
+  <dialog class="modal" id="name-modal">
+    <form id="name-form" method="dialog">
+      <button class="modal-close" id="close-name" type="button" aria-label="Fermer">×</button>
+      <span class="modal-icon">👋</span>
+      <h2>Quel est ton nom ?</h2>
+      <p>Il restera mémorisé uniquement sur cet appareil et apparaîtra dans les opérations.</p>
+      <label for="name-input">Prénom ou surnom</label>
+      <div class="amount-input name-input"><input id="name-input" type="text" maxlength="30" autocomplete="name" placeholder="Ex. Léa" required></div>
+      <button class="submit" type="submit">Continuer</button>
+    </form>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
