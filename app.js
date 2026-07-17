@@ -22,7 +22,7 @@ function render() {
   document.querySelector('#count').textContent = `${state.history.length} opération${state.history.length>1?'s':''}`;
   document.querySelector('#history').innerHTML = state.history.length ? state.history.slice(0,8).map(item=>`
     <li><span class="history-icon ${item.type}">${item.type==='add'?'+':'−'}</span>
-    <span class="history-info"><b>${item.type==='add'?'Ajout à l’ardoise':item.name}</b><small>${item.operator} · ${new Date(item.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span>
+    <span class="history-info"><b>${item.type==='add'?'Ajout à l’ardoise':`${item.quantity>1?item.quantity+' × ':''}${item.name}`}</b><small>${item.operator} · ${new Date(item.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span>
     <span class="history-amount ${item.type}">${item.type==='add'?'+':'−'} ${format(item.amount)}</span></li>`).join('') : '<li class="empty">Aucune opération pour le moment 🌺</li>';
 }
 
@@ -42,11 +42,11 @@ async function refresh() {
   if (!db) { syncStatus('Configuration Supabase requise', 'error'); render(); return; }
   const [balanceResult, logsResult] = await Promise.all([
     db.from('ardoise_state').select('balance,peak,updated_at').eq('id',1).single(),
-    db.from('ardoise_logs').select('operation,amount,item_name,operator_name,created_at').order('created_at',{ascending:false}).limit(50)
+    db.from('ardoise_logs').select('operation,amount,quantity,item_name,operator_name,created_at').order('created_at',{ascending:false}).limit(50)
   ]);
   if (balanceResult.error || logsResult.error) { syncStatus('Connexion impossible', 'error'); toast('Vérifie la configuration Supabase'); return; }
   const row=balanceResult.data;
-  state={ balance:Number(row.balance), peak:Number(row.peak), updated:new Date(row.updated_at).getTime(), history:logsResult.data.map(x=>({type:x.operation,amount:Number(x.amount),name:x.item_name,operator:x.operator_name,date:new Date(x.created_at).getTime()})) };
+  state={ balance:Number(row.balance), peak:Number(row.peak), updated:new Date(row.updated_at).getTime(), history:logsResult.data.map(x=>({type:x.operation,amount:Number(x.amount),quantity:Number(x.quantity||1),name:x.item_name,operator:x.operator_name,date:new Date(x.created_at).getTime()})) };
   syncStatus('Ardoise partagée · en direct','online'); render();
 }
 
