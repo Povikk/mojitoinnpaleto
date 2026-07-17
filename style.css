@@ -39,6 +39,7 @@ body::before { content:""; position:fixed; inset:0; background:linear-gradient(1
 .product b { font-size:.75rem; }
 .product strong { color:#087b76; font-size:.82rem; }
 .extras { margin-top:13px; padding-top:13px; border-top:1px solid #e4ebe5; }
+.product-wide { grid-column:1 / -1; }
 .custom-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:13px; padding:12px; border:1px dashed #b9d1c8; border-radius:14px; background:#f7faf6; }
 .custom-row b,.custom-row small { display:block; }
 .custom-row b { font-size:.75rem; }.custom-row small { color:#809796; font-size:.62rem; margin-top:2px; }
