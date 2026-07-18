@@ -1,4 +1,5 @@
 const NAME_KEY = 'mojito-inn-operator';
+const ORDERS_KEY = 'mojito-inn-simple-orders-v1';
 const number = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
 const config = window.MOJITO_CONFIG || {};
 const configured = /^https:\/\/.+\.supabase\.co$/.test(config.supabaseUrl || '') && !String(config.supabaseKey).startsWith('COLLE_');
@@ -7,6 +8,11 @@ let operatorName = localStorage.getItem(NAME_KEY) || '';
 let state = { balance: 0, peak: 0, history: [], updated: Date.now() };
 let cart = [];
 let appMode = 'tab';
+let expenses = [];
+let savedOrders = loadOrders();
+
+function loadOrders(){try{return JSON.parse(localStorage.getItem(ORDERS_KEY))||[]}catch{return[]}}
+function saveOrders(){localStorage.setItem(ORDERS_KEY,JSON.stringify(savedOrders));renderOrderLogs()}
 
 const format = value => number.format(Number(value));
 const parseAmount = value => Number(value.trim().replace(/\s/g, '').replace(',', '.'));
@@ -38,27 +44,48 @@ function renderCart() {
   document.querySelector('#undo-item').disabled=!cart.length; document.querySelector('#clear-cart').disabled=!cart.length;
 }
 
+function renderExpenses(){
+  const total=expenses.reduce((sum,item)=>sum+item.amount,0);
+  document.querySelector('#expense-total').textContent=format(total);
+  document.querySelector('#expense-count').textContent=`${expenses.length} dépense${expenses.length>1?'s':''}`;
+  document.querySelector('#expense-history').innerHTML=expenses.length?expenses.map(item=>`<li><span class="history-icon add">−</span><span class="history-info"><b>${item.label}</b><small>${item.category} · ${item.operator} · ${new Date(item.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount">− ${format(item.amount)}</span></li>`).join(''):'<li class="empty">Aucune dépense enregistrée 🌺</li>';
+}
+
+function renderOrderLogs(){
+  const revenue=savedOrders.reduce((sum,order)=>sum+order.total,0),itemCount=savedOrders.reduce((sum,order)=>sum+order.items.length,0);
+  document.querySelector('#order-revenue').textContent=format(revenue);
+  document.querySelector('#order-items').textContent=format(itemCount);
+  document.querySelector('#order-count').textContent=format(savedOrders.length);
+  document.querySelector('#saved-orders-count').textContent=`${savedOrders.length} commande${savedOrders.length>1?'s':''}`;
+  const products=new Map();savedOrders.forEach(order=>order.items.forEach(item=>{const old=products.get(item.name)||{qty:0,total:0};old.qty++;old.total+=item.amount;products.set(item.name,old)}));
+  document.querySelector('#sales-summary').innerHTML=products.size?[...products.entries()].sort((a,b)=>b[1].qty-a[1].qty).map(([name,data])=>`<li><span>${name}</span><b>${data.qty} · ${format(data.total)}</b></li>`).join(''):'<li class="empty">Aucune vente</li>';
+  document.querySelector('#order-history').innerHTML=savedOrders.length?savedOrders.slice(0,30).map(order=>{const grouped=new Map();order.items.forEach(item=>grouped.set(item.name,(grouped.get(item.name)||0)+1));const detail=[...grouped.entries()].map(([name,qty])=>`${qty} × ${name}`).join(', ');return `<li><span class="history-icon">✓</span><span class="history-info"><b>${detail}</b><small>${order.operator||'Sans nom'} · ${new Date(order.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount">${format(order.total)}</span></li>`}).join(''):'<li class="empty">Aucune commande enregistrée</li>';
+}
+
 function addToCart(amount,name){ if(appMode==='tab'&&!requireName())return; cart.push({amount,name}); renderCart(); toast(`${name} ajouté · total ${format(cart.reduce((s,x)=>s+x.amount,0))}`); }
 
 function setAppMode(next){
   appMode=next; cart=[];
   document.body.classList.toggle('order-mode',appMode==='order');
+  document.body.classList.toggle('expenses-mode',appMode==='expenses');
   document.querySelectorAll('[data-app-mode]').forEach(button=>button.classList.toggle('active',button.dataset.appMode===appMode));
   document.querySelector('.section-heading small').textContent=appMode==='tab'?'Touchez pour ajouter au panier':'Calcule la commande sans toucher à l’ardoise';
-  renderCart(); toast(appMode==='tab'?'Mode ardoise partagé':'Mode commande simple');
+  renderCart(); toast(appMode==='tab'?'Mode ardoise partagé':appMode==='order'?'Mode commande simple':'Suivi des dépenses');
 }
 document.querySelectorAll('[data-app-mode]').forEach(button=>button.addEventListener('click',()=>setAppMode(button.dataset.appMode)));
 
 async function refresh() {
   if (!db) { syncStatus('Configuration Supabase requise', 'error'); render(); return; }
-  const [balanceResult, logsResult] = await Promise.all([
+  const [balanceResult, logsResult, expensesResult] = await Promise.all([
     db.from('ardoise_state').select('balance,peak,updated_at').eq('id',1).single(),
-    db.from('ardoise_logs').select('operation,amount,quantity,item_name,operator_name,created_at').order('created_at',{ascending:false}).limit(50)
+    db.from('ardoise_logs').select('operation,amount,quantity,item_name,operator_name,created_at').order('created_at',{ascending:false}).limit(50),
+    db.from('depenses').select('label,category,amount,operator_name,created_at').order('created_at',{ascending:false}).limit(100)
   ]);
   if (balanceResult.error || logsResult.error) { syncStatus('Connexion impossible', 'error'); toast('Vérifie la configuration Supabase'); return; }
   const row=balanceResult.data;
   state={ balance:Number(row.balance), peak:Number(row.peak), updated:new Date(row.updated_at).getTime(), history:logsResult.data.map(x=>({type:x.operation,amount:Number(x.amount),quantity:Number(x.quantity||1),name:x.item_name,operator:x.operator_name,date:new Date(x.created_at).getTime()})) };
-  syncStatus('Ardoise partagée · en direct','online'); render();
+  expenses=expensesResult.error?[]:expensesResult.data.map(x=>({label:x.label,category:x.category,amount:Number(x.amount),operator:x.operator_name,date:new Date(x.created_at).getTime()}));
+  syncStatus('Ardoise partagée · en direct','online'); render();renderExpenses();
 }
 
 async function addTransaction(type, amount, name) {
@@ -77,7 +104,7 @@ document.querySelector('#clear-cart').addEventListener('click',()=>{cart=[];rend
 document.querySelector('#validate-cart').addEventListener('click',async()=>{
   if(!cart.length)return;
   const total=cart.reduce((s,x)=>s+x.amount,0);
-  if(appMode==='order'){cart=[];renderCart();toast(`Commande de ${format(total)} encaissée ✓`);return}
+  if(appMode==='order'){savedOrders.unshift({total,items:cart.slice(),operator:operatorName||'Sans nom',date:Date.now()});if(savedOrders.length>200)savedOrders.length=200;saveOrders();cart=[];renderCart();toast(`Commande de ${format(total)} encaissée ✓`);return}
   if(!requireName()||!db){if(!db)toast('Branche d’abord la base Supabase');return}
   if(total>state.balance)return toast(`Total ${format(total)} · il reste seulement ${format(state.balance)}`);
   const pending=cart.slice(); document.querySelector('#validate-cart').disabled=true;
@@ -98,5 +125,18 @@ document.querySelector('#close-name').addEventListener('click',()=>nameModal.clo
 document.querySelector('#name-form').addEventListener('submit',e=>{ e.preventDefault(); const value=document.querySelector('#name-input').value.trim(); if(!value)return; operatorName=value.slice(0,30); localStorage.setItem(NAME_KEY,operatorName); nameModal.close(); render(); toast(`Bienvenue ${operatorName} !`); });
 
 document.querySelector('#reset').addEventListener('click',async()=>{ if(!requireName()||!db)return; if(confirm('Remettre l’ardoise partagée et tous ses logs à zéro ?')){ const {error}=await db.rpc('remettre_ardoise_a_zero'); if(error){console.error(error);return toast(`Remise à zéro impossible : ${error.message}`)} await refresh(); toast('Ardoise remise à zéro'); } });
-if(db){ db.channel('mojito-inn-live').on('postgres_changes',{event:'*',schema:'public',table:'ardoise_state'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'ardoise_logs'},refresh).subscribe(status=>{if(status==='SUBSCRIBED')syncStatus('Ardoise partagée · en direct','online')}); }
-render(); renderCart(); refresh(); if(!operatorName)setTimeout(openName,250);
+document.querySelector('#expense-form').addEventListener('submit',async e=>{
+  e.preventDefault();if(!requireName()||!db){if(!db)toast('Branche d’abord la base Supabase');return}
+  const label=document.querySelector('#expense-label').value.trim(),category=document.querySelector('#expense-category').value,amount=parseAmount(document.querySelector('#expense-amount').value);
+  if(!label||!Number.isFinite(amount)||amount<=0)return toast('Indique un achat et un montant valide');
+  const {error}=await db.rpc('ajouter_depense',{p_label:label,p_category:category,p_amount:amount,p_operator_name:operatorName});
+  if(error)return toast(`Dépense non enregistrée : ${error.message}`);
+  e.target.reset();await refresh();toast(`Dépense de ${format(amount)} enregistrée ✓`);
+});
+document.querySelector('#reset-expenses').addEventListener('click',async()=>{
+  if(!requireName()||!db)return;if(!confirm('Effacer tout l’historique des dépenses ?'))return;
+  const {error}=await db.rpc('remettre_depenses_a_zero');if(error)return toast(`Remise à zéro impossible : ${error.message}`);await refresh();toast('Dépenses remises à zéro');
+});
+document.querySelector('#reset-orders').addEventListener('click',()=>{if(!savedOrders.length)return;if(confirm('Effacer les commandes et le récapitulatif enregistrés sur cet appareil ?')){savedOrders=[];saveOrders();toast('Historique des commandes remis à zéro')}});
+if(db){ db.channel('mojito-inn-live').on('postgres_changes',{event:'*',schema:'public',table:'ardoise_state'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'ardoise_logs'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'depenses'},refresh).subscribe(status=>{if(status==='SUBSCRIBED')syncStatus('Ardoise partagée · en direct','online')}); }
+render(); renderCart();renderExpenses();renderOrderLogs(); refresh(); if(!operatorName)setTimeout(openName,250);
