@@ -41,25 +41,43 @@
 
     <section class="card action-card">
       <div class="section-heading"><span>La carte</span><small>Touchez pour ajouter au panier</small></div>
-      <div class="price-section">
-        <div class="price-title"><span>🌴 Prix classique</span></div>
-        <div class="product-grid">
-          <button class="product" data-price="400" data-name="Alcool"><span>🥃</span><b>Alcool</b><strong>400</strong></button>
-          <button class="product" data-price="450" data-name="Cocktail"><span>🍸</span><b>Cocktail</b><strong>450</strong></button>
-        </div>
+      <div class="menu-view-switch"><button class="active" type="button" data-menu-view="simple">Simplifié</button><button type="button" data-menu-view="detailed">Détails</button></div>
+      <div id="simple-menu">
+      <div class="price-section"><div class="price-title"><span>🌴 Prix classique</span></div><div class="product-grid">
+        <button class="product" data-price="400" data-name="Alcool"><span>🥃</span><b>Alcool</b><strong>400</strong></button>
+        <button class="product" data-price="450" data-name="Cocktail"><span>🍸</span><b>Cocktail</b><strong>450</strong></button>
+      </div></div>
+      <div class="price-section"><div class="price-title"><span>🌅 Happy hour</span><small>Prix doux</small></div><div class="product-grid">
+        <button class="product" data-price="300" data-name="Alcool · Happy hour"><span>🥃</span><b>Alcool</b><strong>300</strong></button>
+        <button class="product" data-price="350" data-name="Cocktail · Happy hour"><span>🍹</span><b>Cocktail</b><strong>350</strong></button>
+      </div></div>
+      <div class="product-grid extras"><button class="product" data-price="100" data-name="Soft"><span>🥤</span><b>Soft</b><strong>100</strong></button><button class="product" data-price="500" data-name="Menu"><span>🍽️</span><b>Menu</b><strong>500</strong></button><button class="product product-wide" data-price="150" data-name="Snacks"><span>🍟</span><b>Snacks</b><strong>150</strong></button></div>
       </div>
-      <div class="price-section">
-        <div class="price-title"><span>🌅 Happy hour</span><small>Prix doux</small></div>
-        <div class="product-grid">
-          <button class="product" data-price="300" data-name="Alcool · Happy hour"><span>🥃</span><b>Alcool</b><strong>300</strong></button>
-          <button class="product" data-price="350" data-name="Cocktail · Happy hour"><span>🍹</span><b>Cocktail</b><strong>350</strong></button>
-        </div>
-      </div>
-      <div class="product-grid extras">
-        <button class="product" data-price="100" data-name="Soft"><span>🥤</span><b>Soft</b><strong>100</strong></button>
-        <button class="product" data-price="500" data-name="Menu"><span>🍽️</span><b>Menu</b><strong>500</strong></button>
-        <button class="product product-wide" data-price="150" data-name="Snack"><span>🍟</span><b>Snacks</b><strong>150</strong></button>
-      </div>
+
+      <div class="detail-menu" id="detailed-menu" hidden><div class="detail-content">
+      <button class="happy-toggle" id="happy-toggle" type="button" aria-pressed="false"><span>🌅 Tarifs du détail</span><b id="happy-state">Prix classiques</b></button>
+      <div class="menu-group"><div class="price-title"><span>🍹 Cocktails</span><small class="dynamic-price">450</small></div><div class="product-grid compact-grid">
+        <button class="product" data-normal="450" data-happy="350" data-name="Mojito" data-log-name="Cocktail"><span>🍹</span><b>Mojito</b><strong>450</strong></button>
+        <button class="product" data-normal="450" data-happy="350" data-name="Havana Sunset" data-log-name="Cocktail"><span>🌅</span><b>Havana Sunset</b><strong>450</strong></button>
+        <button class="product" data-normal="450" data-happy="350" data-name="Blue Crush" data-log-name="Cocktail"><span>💙</span><b>Blue Crush</b><strong>450</strong></button>
+        <button class="product" data-normal="450" data-happy="350" data-name="Coral Rush" data-log-name="Cocktail"><span>🪸</span><b>Coral Rush</b><strong>450</strong></button>
+        <button class="product" data-normal="450" data-happy="350" data-name="Point Break" data-log-name="Cocktail"><span>🌊</span><b>Point Break</b><strong>450</strong></button>
+        <button class="product" data-normal="450" data-happy="350" data-name="Sangria" data-log-name="Cocktail"><span>🍷</span><b>Sangria</b><strong>450</strong></button>
+      </div></div>
+      <div class="menu-group"><div class="price-title"><span>🥃 Alcools</span><small class="dynamic-price">400</small></div><div class="product-grid compact-grid">
+        <button class="product" data-normal="400" data-happy="300" data-name="Rhum" data-log-name="Alcool"><span>🥃</span><b>Rhum</b><strong>400</strong></button>
+        <button class="product" data-normal="400" data-happy="300" data-name="Whisky" data-log-name="Alcool"><span>🥃</span><b>Whisky</b><strong>400</strong></button>
+        <button class="product" data-normal="400" data-happy="300" data-name="Vodka" data-log-name="Alcool"><span>🧊</span><b>Vodka</b><strong>400</strong></button>
+        <button class="product" data-normal="400" data-happy="300" data-name="Tequila" data-log-name="Alcool"><span>🍋</span><b>Tequila</b><strong>400</strong></button>
+        <button class="product product-wide" data-normal="400" data-happy="300" data-name="Gin" data-log-name="Alcool"><span>🌿</span><b>Gin</b><strong>400</strong></button>
+      </div></div>
+      <div class="menu-group"><div class="price-title"><span>🥤 Softs</span><small>100</small></div><div class="product-grid compact-grid">
+        <button class="product" data-normal="100" data-name="Eau" data-log-name="Soft"><span>💧</span><b>Eau</b><strong>100</strong></button>
+        <button class="product" data-normal="100" data-name="Sprunk" data-log-name="Soft"><span>🥤</span><b>Sprunk</b><strong>100</strong></button>
+        <button class="product" data-normal="100" data-name="E-Cola" data-log-name="Soft"><span>🥤</span><b>E-Cola</b><strong>100</strong></button>
+        <button class="product" data-normal="100" data-name="Café" data-log-name="Soft"><span>☕</span><b>Café</b><strong>100</strong></button>
+      </div></div>
+      </div></div>
       <form class="custom-row" id="custom-form">
         <div><b>Montant libre</b><small>Pour un prix personnalisé</small></div>
         <div class="custom-input"><input id="custom-amount" inputmode="decimal" placeholder="0" aria-label="Montant libre"><button type="submit">＋</button></div>

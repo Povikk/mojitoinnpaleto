@@ -11,6 +11,7 @@ let cart = [];
 let appMode = 'tab';
 let expenses = [];
 let savedOrders = loadOrders();
+let happyHour = false;
 
 function loadOrders(){try{return JSON.parse(localStorage.getItem(ORDERS_KEY))||[]}catch{return[]}}
 function saveOrders(){localStorage.setItem(ORDERS_KEY,JSON.stringify(savedOrders));renderOrderLogs()}
@@ -62,12 +63,12 @@ function renderOrderLogs(){
   document.querySelector('#order-items').textContent=format(itemCount);
   document.querySelector('#order-count').textContent=format(savedOrders.length);
   document.querySelector('#saved-orders-count').textContent=`${savedOrders.length} commande${savedOrders.length>1?'s':''}`;
-  const products=new Map();savedOrders.forEach(order=>order.items.forEach(item=>{const old=products.get(item.name)||{qty:0,total:0};old.qty++;old.total+=item.amount;products.set(item.name,old)}));
+  const products=new Map();savedOrders.forEach(order=>order.items.forEach(item=>{const label=item.logName||item.name,old=products.get(label)||{qty:0,total:0};old.qty++;old.total+=item.amount;products.set(label,old)}));
   document.querySelector('#sales-summary').innerHTML=products.size?[...products.entries()].sort((a,b)=>b[1].qty-a[1].qty).map(([name,data])=>`<li><span>${name}</span><b>${data.qty} · ${format(data.total)}</b></li>`).join(''):'<li class="empty">Aucune vente</li>';
-  document.querySelector('#order-history').innerHTML=savedOrders.length?savedOrders.slice(0,30).map(order=>{const grouped=new Map();order.items.forEach(item=>grouped.set(item.name,(grouped.get(item.name)||0)+1));const detail=[...grouped.entries()].map(([name,qty])=>`${qty} × ${name}`).join(', ');return `<li><span class="history-icon">✓</span><span class="history-info"><b>${detail}</b><small>${order.operator||'Sans nom'} · ${new Date(order.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount">${format(order.total)}</span></li>`}).join(''):'<li class="empty">Aucune commande enregistrée</li>';
+  document.querySelector('#order-history').innerHTML=savedOrders.length?savedOrders.slice(0,30).map(order=>{const grouped=new Map();order.items.forEach(item=>{const label=item.logName||item.name;grouped.set(label,(grouped.get(label)||0)+1)});const detail=[...grouped.entries()].map(([name,qty])=>`${qty} × ${name}`).join(', ');return `<li><span class="history-icon">✓</span><span class="history-info"><b>${detail}</b><small>${order.operator||'Sans nom'} · ${new Date(order.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount">${format(order.total)}</span></li>`}).join(''):'<li class="empty">Aucune commande enregistrée</li>';
 }
 
-function addToCart(amount,name){ if(appMode==='tab'&&!requireName())return; cart.push({amount,name}); renderCart(); toast(`${name} ajouté · total ${format(cart.reduce((s,x)=>s+x.amount,0))}`); }
+function addToCart(amount,name,logName=name){ if(appMode==='tab'&&!requireName())return; cart.push({amount,name,logName}); renderCart(); toast(`${name} ajouté · total ${format(cart.reduce((s,x)=>s+x.amount,0))}`); }
 
 function setAppMode(next){
   appMode=next; cart=[];
@@ -103,7 +104,14 @@ async function addTransaction(type, amount, name) {
   await refresh(); toast(type==='add'?`${format(amount)} ajoutés par ${operatorName} 🌺`:`${name} · − ${format(amount)} ✓`);
 }
 
-document.querySelectorAll('.product').forEach(button=>button.addEventListener('click',()=>addToCart(Number(button.dataset.price),button.dataset.name)));
+function updateMenuPrices(){
+  document.querySelectorAll('.product[data-normal]').forEach(button=>{const price=happyHour&&button.dataset.happy?button.dataset.happy:button.dataset.normal;button.dataset.price=price;button.querySelector('strong').textContent=price});
+  const dynamic=document.querySelectorAll('.dynamic-price');if(dynamic[0])dynamic[0].textContent=happyHour?'350':'450';if(dynamic[1])dynamic[1].textContent=happyHour?'300':'400';
+  const toggle=document.querySelector('#happy-toggle');toggle.classList.toggle('active',happyHour);toggle.setAttribute('aria-pressed',happyHour);document.querySelector('#happy-state').textContent=happyHour?'Happy hour · 21h–22h':'Prix classiques';
+}
+document.querySelector('#happy-toggle').addEventListener('click',()=>{happyHour=!happyHour;updateMenuPrices();toast(happyHour?'Happy hour activé 🌅':'Prix classiques activés')});
+document.querySelectorAll('[data-menu-view]').forEach(button=>button.addEventListener('click',()=>{const detailed=button.dataset.menuView==='detailed';document.querySelector('#simple-menu').hidden=detailed;document.querySelector('#detailed-menu').hidden=!detailed;document.querySelectorAll('[data-menu-view]').forEach(item=>item.classList.toggle('active',item===button))}));
+document.querySelectorAll('.product').forEach(button=>button.addEventListener('click',()=>addToCart(Number(button.dataset.price),button.dataset.name,button.dataset.logName||button.dataset.name)));
 document.querySelector('#custom-form').addEventListener('submit',e=>{e.preventDefault();const input=document.querySelector('#custom-amount');const amount=parseAmount(input.value);if(!Number.isFinite(amount)||amount<=0)return toast('Entre un montant libre supérieur à zéro');addToCart(amount,'Montant libre');input.value=''});
 document.querySelector('#undo-item').addEventListener('click',()=>{const item=cart.pop();renderCart();if(item)toast(`${item.name} retiré du panier`)});
 document.querySelector('#clear-cart').addEventListener('click',()=>{cart=[];renderCart();toast('Panier vidé')});
@@ -113,7 +121,7 @@ document.querySelector('#validate-cart').addEventListener('click',async()=>{
   if(appMode==='order'){savedOrders.unshift({total,items:cart.slice(),operator:operatorName||'Sans nom',date:Date.now()});if(savedOrders.length>200)savedOrders.length=200;saveOrders();cart=[];renderCart();toast(`Commande de ${format(total)} encaissée ✓`);return}
   if(!requireName()||!db){if(!db)toast('Branche d’abord la base Supabase');return}
   if(total>state.balance)return toast(`Total ${format(total)} · il reste seulement ${format(state.balance)}`);
-  const pending=cart.slice(); document.querySelector('#validate-cart').disabled=true;
+  const pending=cart.map(item=>({...item,name:item.logName||item.name})); document.querySelector('#validate-cart').disabled=true;
   const {error}=await db.rpc('appliquer_panier',{p_items:pending,p_operator_name:operatorName});
   if(error){renderCart();return toast(error.message.includes('Solde insuffisant')?'Le solde vient de changer : total insuffisant':'Panier non enregistré')}
   cart=[];renderCart();await refresh();toast(`Panier de ${format(total)} validé ✓`);
@@ -145,4 +153,4 @@ document.querySelector('#reset-expenses').addEventListener('click',async()=>{
 });
 document.querySelector('#reset-orders').addEventListener('click',()=>{if(!savedOrders.length)return;if(confirm('Effacer les commandes et le récapitulatif enregistrés sur cet appareil ?')){savedOrders=[];saveOrders();toast('Historique des commandes remis à zéro')}});
 if(db){ db.channel('mojito-inn-live').on('postgres_changes',{event:'*',schema:'public',table:'ardoise_state'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'ardoise_logs'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'depenses'},refresh).subscribe(status=>{if(status==='SUBSCRIBED')syncStatus('Ardoise partagée · en direct','online')}); }
-applyTheme(localStorage.getItem(THEME_KEY)||'sand');render(); renderCart();renderExpenses();renderOrderLogs(); refresh(); if(!operatorName)setTimeout(openName,250);
+updateMenuPrices();applyTheme(localStorage.getItem(THEME_KEY)||'sand');render(); renderCart();renderExpenses();renderOrderLogs(); refresh(); if(!operatorName)setTimeout(openName,250);
