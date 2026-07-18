@@ -9,10 +9,34 @@ body::before { content:""; position:fixed; inset:0; background:linear-gradient(1
 .brand p { margin:3px 0 0; letter-spacing:.2em; text-transform:uppercase; font-weight:700; font-size:.78rem; }
 .operator { display:inline-flex; align-items:center; gap:6px; margin-top:12px; padding:7px 12px; border:1px solid rgba(255,255,255,.35); border-radius:99px; color:white; background:rgba(0,45,48,.35); backdrop-filter:blur(8px); font-size:.7rem; }
 .card { background:rgba(255,250,240,.94); border:1px solid rgba(255,255,255,.58); box-shadow:0 18px 45px rgba(0,31,33,.25); border-radius:24px; backdrop-filter:blur(12px); }
-.mode-switch { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin:0 0 14px; padding:5px; border:1px solid rgba(255,255,255,.55); border-radius:16px; background:rgba(3,55,58,.72); backdrop-filter:blur(10px); }
+.mode-switch { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin:0 0 14px; padding:5px; border:1px solid rgba(255,255,255,.55); border-radius:16px; background:rgba(3,55,58,.72); backdrop-filter:blur(10px); }
 .mode-button { border:0; border-radius:12px; padding:10px 5px; background:transparent; color:rgba(255,255,255,.72); font-size:.72rem; font-weight:700; }
 .mode-button.active { background:#fff8e9; color:var(--teal); box-shadow:0 3px 10px rgba(0,0,0,.18); }
 body.order-mode .balance-card,body.order-mode .history-card { display:none; }
+body.expenses-mode .balance-card,body.expenses-mode .action-card,body.expenses-mode .history-card { display:none; }
+.order-logs-view { display:none; }
+body.order-mode .order-logs-view { display:block; }
+body.expenses-mode .order-logs-view { display:none; }
+.order-stats { display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:8px; margin-bottom:10px; }
+.order-stats .card { padding:14px 12px; border-radius:16px; }
+.order-stats small,.order-stats strong { display:block; }.order-stats small { color:#76908e; font-size:.58rem; }.order-stats strong { margin-top:5px; color:var(--teal); font-size:1.15rem; }
+.order-summary-card,.order-history-card { padding:18px 20px; margin-bottom:12px; }
+.sales-summary { list-style:none; padding:0; margin:12px 0 0; display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+.sales-summary li { display:flex; justify-content:space-between; gap:7px; padding:9px 10px; border-radius:10px; background:#edf4ef; font-size:.67rem; }
+.sales-summary li b { color:var(--teal); }
+.history-card .history,.order-history-card .history,.expense-history-card .history { max-height:340px; overflow-y:auto; overscroll-behavior:contain; padding-right:5px; }
+.sales-summary { max-height:190px; overflow-y:auto; overscroll-behavior:contain; padding-right:4px; }
+.history::-webkit-scrollbar,.sales-summary::-webkit-scrollbar { width:6px; }
+.history::-webkit-scrollbar-thumb,.sales-summary::-webkit-scrollbar-thumb { background:#b7cbc3; border-radius:10px; }
+.expenses-view { display:none; }
+body.expenses-mode .expenses-view { display:block; }
+.expense-total-card { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding:21px 23px; color:white; background:linear-gradient(135deg,#d96550,#a94843); }
+.expense-total-card p { margin:0 0 5px; font-size:.75rem; opacity:.8; }.expense-total-card strong { font-size:2.4rem; }.expense-total-card>span { font-size:2.4rem; }
+.expense-form-card,.expense-history-card { padding:20px; margin-bottom:14px; }
+.expense-form-card h2 { margin:0 0 16px; font-size:1rem; }
+.field { width:100%; min-height:44px; border:2px solid #d9e5de; border-radius:12px; background:white; color:var(--ink); padding:9px 11px; font:inherit; font-size:.78rem; outline:0; }
+.field:focus { border-color:var(--aqua); }.expense-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:11px; }.expense-form-card .submit { margin-top:14px; }
+.expense-history-card .history-amount { color:#d45f4e; }
 .balance-card { padding:22px 24px 23px; margin-bottom:14px; background:linear-gradient(135deg,rgba(6,80,83,.95),rgba(7,55,60,.96)); color:white; }
 .balance-top,.section-title { display:flex; justify-content:space-between; align-items:flex-start; }
 .label { margin:0; font-weight:700; font-size:.93rem; }
