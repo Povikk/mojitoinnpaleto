@@ -6,6 +6,7 @@ const db = configured && window.supabase ? window.supabase.createClient(config.s
 let operatorName = localStorage.getItem(NAME_KEY) || '';
 let state = { balance: 0, peak: 0, history: [], updated: Date.now() };
 let cart = [];
+let appMode = 'tab';
 
 const format = value => number.format(Number(value));
 const parseAmount = value => Number(value.trim().replace(/\s/g, '').replace(',', '.'));
@@ -33,10 +34,20 @@ function renderCart() {
   const counts=new Map(); cart.forEach(item=>{const key=`${item.name}|${item.amount}`; const old=counts.get(key)||{...item,qty:0}; old.qty++; counts.set(key,old)});
   document.querySelector('#cart-lines').innerHTML=[...counts.values()].map(item=>`<li><span>${item.qty} × ${item.name}</span><span>${format(item.qty*item.amount)}</span></li>`).join('');
   document.querySelector('#validate-cart').disabled=!cart.length;
+  document.querySelector('#validate-cart').textContent=appMode==='tab'?'Valider et déduire':'Commande encaissée';
   document.querySelector('#undo-item').disabled=!cart.length; document.querySelector('#clear-cart').disabled=!cart.length;
 }
 
-function addToCart(amount,name){ if(!requireName())return; cart.push({amount,name}); renderCart(); toast(`${name} ajouté · total ${format(cart.reduce((s,x)=>s+x.amount,0))}`); }
+function addToCart(amount,name){ if(appMode==='tab'&&!requireName())return; cart.push({amount,name}); renderCart(); toast(`${name} ajouté · total ${format(cart.reduce((s,x)=>s+x.amount,0))}`); }
+
+function setAppMode(next){
+  appMode=next; cart=[];
+  document.body.classList.toggle('order-mode',appMode==='order');
+  document.querySelectorAll('[data-app-mode]').forEach(button=>button.classList.toggle('active',button.dataset.appMode===appMode));
+  document.querySelector('.section-heading small').textContent=appMode==='tab'?'Touchez pour ajouter au panier':'Calcule la commande sans toucher à l’ardoise';
+  renderCart(); toast(appMode==='tab'?'Mode ardoise partagé':'Mode commande simple');
+}
+document.querySelectorAll('[data-app-mode]').forEach(button=>button.addEventListener('click',()=>setAppMode(button.dataset.appMode)));
 
 async function refresh() {
   if (!db) { syncStatus('Configuration Supabase requise', 'error'); render(); return; }
@@ -64,8 +75,11 @@ document.querySelector('#custom-form').addEventListener('submit',e=>{e.preventDe
 document.querySelector('#undo-item').addEventListener('click',()=>{const item=cart.pop();renderCart();if(item)toast(`${item.name} retiré du panier`)});
 document.querySelector('#clear-cart').addEventListener('click',()=>{cart=[];renderCart();toast('Panier vidé')});
 document.querySelector('#validate-cart').addEventListener('click',async()=>{
-  if(!requireName()||!db||!cart.length){if(!db)toast('Branche d’abord la base Supabase');return}
-  const total=cart.reduce((s,x)=>s+x.amount,0); if(total>state.balance)return toast(`Total ${format(total)} · il reste seulement ${format(state.balance)}`);
+  if(!cart.length)return;
+  const total=cart.reduce((s,x)=>s+x.amount,0);
+  if(appMode==='order'){cart=[];renderCart();toast(`Commande de ${format(total)} encaissée ✓`);return}
+  if(!requireName()||!db){if(!db)toast('Branche d’abord la base Supabase');return}
+  if(total>state.balance)return toast(`Total ${format(total)} · il reste seulement ${format(state.balance)}`);
   const pending=cart.slice(); document.querySelector('#validate-cart').disabled=true;
   const {error}=await db.rpc('appliquer_panier',{p_items:pending,p_operator_name:operatorName});
   if(error){renderCart();return toast(error.message.includes('Solde insuffisant')?'Le solde vient de changer : total insuffisant':'Panier non enregistré')}
@@ -80,7 +94,7 @@ document.querySelector('#add-form').addEventListener('submit',async e=>{ e.preve
 const nameModal=document.querySelector('#name-modal');
 function openName(){ document.querySelector('#name-input').value=operatorName; nameModal.showModal(); setTimeout(()=>document.querySelector('#name-input').focus(),50); }
 document.querySelector('#open-name').addEventListener('click',openName);
-document.querySelector('#close-name').addEventListener('click',()=>{if(operatorName)nameModal.close()});
+document.querySelector('#close-name').addEventListener('click',()=>nameModal.close());
 document.querySelector('#name-form').addEventListener('submit',e=>{ e.preventDefault(); const value=document.querySelector('#name-input').value.trim(); if(!value)return; operatorName=value.slice(0,30); localStorage.setItem(NAME_KEY,operatorName); nameModal.close(); render(); toast(`Bienvenue ${operatorName} !`); });
 
 document.querySelector('#reset').addEventListener('click',async()=>{ if(!requireName()||!db)return; if(confirm('Remettre l’ardoise partagée et tous ses logs à zéro ?')){ const {error}=await db.rpc('remettre_ardoise_a_zero'); if(error){console.error(error);return toast(`Remise à zéro impossible : ${error.message}`)} await refresh(); toast('Ardoise remise à zéro'); } });
