@@ -36,6 +36,7 @@
     <nav class="mode-switch" aria-label="Mode de caisse">
       <button class="mode-button active" type="button" data-app-mode="tab">🧾 Ardoise</button>
       <button class="mode-button" type="button" data-app-mode="order">🧮 Commande simple</button>
+      <button class="mode-button" type="button" data-app-mode="expenses">💸 Dépenses</button>
     </nav>
 
     <section class="card action-card">
@@ -71,12 +72,47 @@
       </div>
     </section>
 
+    <section class="order-logs-view">
+      <div class="order-stats">
+        <div class="card"><small>Total encaissé personnel</small><strong id="order-revenue">0</strong></div>
+        <div class="card"><small>Articles</small><strong id="order-items">0</strong></div>
+        <div class="card"><small>Commandes</small><strong id="order-count">0</strong></div>
+      </div>
+      <section class="card order-summary-card">
+        <div class="section-title"><div><span>Récapitulatif des ventes</span><small>Enregistré sur cet appareil</small></div><button class="reset" id="reset-orders" type="button">Remettre à zéro</button></div>
+        <ul class="sales-summary" id="sales-summary"></ul>
+      </section>
+      <section class="card order-history-card">
+        <div class="section-title"><div><span>Commandes passées</span><small id="saved-orders-count">0 commande</small></div></div>
+        <ul class="history" id="order-history"></ul>
+      </section>
+    </section>
+
     <section class="card history-card">
       <div class="section-title">
         <div><span>Dernières opérations</span><small id="count">0 opération</small></div>
         <button class="reset" id="reset" type="button">Remettre à zéro</button>
       </div>
       <ul id="history" class="history"></ul>
+    </section>
+    <section class="expenses-view">
+      <div class="card expense-total-card"><div><p>Total des dépenses</p><strong id="expense-total">0</strong></div><span>💸</span></div>
+      <section class="card expense-form-card">
+        <h2>Nouvelle dépense</h2>
+        <form id="expense-form">
+          <label for="expense-label">Achat</label>
+          <input class="field" id="expense-label" maxlength="80" placeholder="Ex. bouteilles, glaçons…" required>
+          <div class="expense-row">
+            <div><label for="expense-category">Catégorie</label><select class="field" id="expense-category"><option>Stock bar</option><option>Nourriture</option><option>Matériel</option><option>Entretien</option><option>Transport</option><option>Autre</option></select></div>
+            <div><label for="expense-amount">Montant</label><input class="field" id="expense-amount" inputmode="decimal" placeholder="0" required></div>
+          </div>
+          <button class="submit add" type="submit">Enregistrer la dépense</button>
+        </form>
+      </section>
+      <section class="card expense-history-card">
+        <div class="section-title"><div><span>Historique des dépenses</span><small id="expense-count">0 dépense</small></div><button class="reset" id="reset-expenses" type="button">Remettre à zéro</button></div>
+        <ul class="history" id="expense-history"></ul>
+      </section>
     </section>
     <footer>🌴 Mojito Inn · Les pieds dans le sable</footer>
   </main>
