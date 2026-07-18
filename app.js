@@ -1,5 +1,6 @@
 const NAME_KEY = 'mojito-inn-operator';
 const ORDERS_KEY = 'mojito-inn-simple-orders-v1';
+const THEME_KEY = 'mojito-inn-theme';
 const number = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
 const config = window.MOJITO_CONFIG || {};
 const configured = /^https:\/\/.+\.supabase\.co$/.test(config.supabaseUrl || '') && !String(config.supabaseKey).startsWith('COLLE_');
@@ -13,6 +14,10 @@ let savedOrders = loadOrders();
 
 function loadOrders(){try{return JSON.parse(localStorage.getItem(ORDERS_KEY))||[]}catch{return[]}}
 function saveOrders(){localStorage.setItem(ORDERS_KEY,JSON.stringify(savedOrders));renderOrderLogs()}
+function applyTheme(theme){
+  if(theme!=='contrast')theme='sand';document.body.classList.toggle('theme-contrast',theme==='contrast');document.body.dataset.theme=theme;
+  const button=document.querySelector('#theme-toggle');button.textContent=theme==='contrast'?'☀️':'🌙';button.setAttribute('aria-label',theme==='contrast'?'Activer le mode clair':'Activer le mode sombre');
+}
 
 const format = value => number.format(Number(value));
 const parseAmount = value => Number(value.trim().replace(/\s/g, '').replace(',', '.'));
@@ -73,6 +78,7 @@ function setAppMode(next){
   renderCart(); toast(appMode==='tab'?'Mode ardoise partagé':appMode==='order'?'Mode commande simple':'Suivi des dépenses');
 }
 document.querySelectorAll('[data-app-mode]').forEach(button=>button.addEventListener('click',()=>setAppMode(button.dataset.appMode)));
+document.querySelector('#theme-toggle').addEventListener('click',()=>{const next=document.body.classList.contains('theme-contrast')?'sand':'contrast';localStorage.setItem(THEME_KEY,next);applyTheme(next)});
 
 async function refresh() {
   if (!db) { syncStatus('Configuration Supabase requise', 'error'); render(); return; }
@@ -139,4 +145,4 @@ document.querySelector('#reset-expenses').addEventListener('click',async()=>{
 });
 document.querySelector('#reset-orders').addEventListener('click',()=>{if(!savedOrders.length)return;if(confirm('Effacer les commandes et le récapitulatif enregistrés sur cet appareil ?')){savedOrders=[];saveOrders();toast('Historique des commandes remis à zéro')}});
 if(db){ db.channel('mojito-inn-live').on('postgres_changes',{event:'*',schema:'public',table:'ardoise_state'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'ardoise_logs'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'depenses'},refresh).subscribe(status=>{if(status==='SUBSCRIBED')syncStatus('Ardoise partagée · en direct','online')}); }
-render(); renderCart();renderExpenses();renderOrderLogs(); refresh(); if(!operatorName)setTimeout(openName,250);
+applyTheme(localStorage.getItem(THEME_KEY)||'sand');render(); renderCart();renderExpenses();renderOrderLogs(); refresh(); if(!operatorName)setTimeout(openName,250);

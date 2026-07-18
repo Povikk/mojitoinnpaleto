@@ -8,6 +8,7 @@ body::before { content:""; position:fixed; inset:0; background:linear-gradient(1
 .brand h1 { margin:-2px 0 0; font:clamp(2.8rem,12vw,4.2rem)/1.15 Pacifico,cursive; color:#fff7d8; transform:rotate(-2deg); }
 .brand p { margin:3px 0 0; letter-spacing:.2em; text-transform:uppercase; font-weight:700; font-size:.78rem; }
 .operator { display:inline-flex; align-items:center; gap:6px; margin-top:12px; padding:7px 12px; border:1px solid rgba(255,255,255,.35); border-radius:99px; color:white; background:rgba(0,45,48,.35); backdrop-filter:blur(8px); font-size:.7rem; }
+.brand-tools { display:flex; justify-content:center; align-items:center; gap:7px; }.theme-toggle { width:34px; height:34px; margin-top:12px; border:1px solid rgba(255,255,255,.35); border-radius:50%; background:rgba(0,45,48,.45); color:white; backdrop-filter:blur(8px); }
 .card { background:rgba(255,250,240,.94); border:1px solid rgba(255,255,255,.58); box-shadow:0 18px 45px rgba(0,31,33,.25); border-radius:24px; backdrop-filter:blur(12px); }
 .mode-switch { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin:0 0 14px; padding:5px; border:1px solid rgba(255,255,255,.55); border-radius:16px; background:rgba(3,55,58,.72); backdrop-filter:blur(10px); }
 .mode-button { border:0; border-radius:12px; padding:10px 5px; background:transparent; color:rgba(255,255,255,.72); font-size:.72rem; font-weight:700; }
@@ -125,3 +126,13 @@ footer { color:rgba(255,255,255,.8); text-align:center; margin:19px 0 0; font-si
 @keyframes pop { from { opacity:0; transform:translateY(15px) scale(.97) } }
 @media (max-width:430px) { .page{width:min(100% - 18px,520px);padding-top:20px}.brand{margin-bottom:14px}.brand h1{font-size:2.85rem}.balance{font-size:2.8rem}.card{border-radius:20px} }
 @media (prefers-reduced-motion:reduce) { *{scroll-behavior:auto!important;transition:none!important} }
+
+/* Le thème sombre change l’application, jamais l’image tropicale de fond. */
+body.theme-contrast { --cream:#07191a; --ink:#fff; }
+body.theme-contrast .card { background:rgba(5,20,21,.98); border-color:#5e7d7a; color:#fff; box-shadow:0 18px 45px rgba(0,0,0,.6); }
+body.theme-contrast .balance-card { background:#073f43; border-color:#8edfd1; }
+body.theme-contrast .product,body.theme-contrast .field,body.theme-contrast .amount-input,body.theme-contrast .modal { background:#102829; border-color:#6b8d89; color:#fff; }
+body.theme-contrast .cart,body.theme-contrast .custom-row,body.theme-contrast .sales-summary li { background:#102b2c; border-color:#6b8d89; }
+body.theme-contrast .product strong,body.theme-contrast .history-amount,body.theme-contrast .cart-head strong { color:#75f1de; }
+body.theme-contrast .history-info small,body.theme-contrast .price-title,body.theme-contrast .section-heading small,body.theme-contrast .order-stats small { color:#c0d7d3; }
+body.theme-contrast .history-icon { background:#174640; color:#75f1de; }body.theme-contrast .history-icon.add { background:#552d29; color:#ff9d83; }body.theme-contrast .reset { color:#ffab96; }body.theme-contrast input::placeholder { color:#9cb3af; }body.theme-contrast select { color-scheme:dark; }
