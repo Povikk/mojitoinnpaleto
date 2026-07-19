@@ -38,20 +38,20 @@ body.expenses-mode .expenses-view { display:block; }
 .field { width:100%; min-height:44px; border:2px solid #d9e5de; border-radius:12px; background:white; color:var(--ink); padding:9px 11px; font:inherit; font-size:.78rem; outline:0; }
 .field:focus { border-color:var(--aqua); }.expense-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:11px; }.expense-form-card .submit { margin-top:14px; }
 .expense-history-card .history-amount { color:#d45f4e; }
-.balance-card { padding:17px 20px 18px; margin-bottom:10px; background:linear-gradient(135deg,rgba(6,80,83,.95),rgba(7,55,60,.96)); color:white; }
+.balance-card { padding:13px 17px 14px; margin-bottom:9px; background:linear-gradient(135deg,rgba(6,80,83,.95),rgba(7,55,60,.96)); color:white; }
 .balance-top,.section-title { display:flex; justify-content:space-between; align-items:flex-start; }
 .label { margin:0; font-weight:700; font-size:.93rem; }
 .updated { margin:3px 0 0; font-size:.72rem; opacity:.7; }
-.add-fab { width:43px; height:43px; border:0; border-radius:50%; color:var(--teal); background:#fff2bd; font-size:1.65rem; line-height:1; box-shadow:0 5px 14px rgba(0,0,0,.2); }
+.add-fab { width:36px; height:36px; border:0; border-radius:50%; color:var(--teal); background:#fff2bd; font-size:1.35rem; line-height:1; box-shadow:0 4px 11px rgba(0,0,0,.2); }
 .add-fab:active { transform:scale(.94); }
-.balance { margin:10px 0 8px; font-size:2.8rem; font-weight:700; letter-spacing:-.06em; }
-.sync-status { display:flex; align-items:center; gap:6px; margin-top:12px; font-size:.64rem; opacity:.8; }
+.balance { margin:7px 0 6px; font-size:2.35rem; line-height:1.05; font-weight:700; letter-spacing:-.05em; }
+.sync-status { display:flex; align-items:center; gap:5px; margin-top:7px; font-size:.6rem; opacity:.8; }
 .sync-status i { width:7px; height:7px; border-radius:50%; background:#f2bd65; }
 .sync-status.online i { background:#55e1aa; box-shadow:0 0 0 4px rgba(85,225,170,.12); }
 .sync-status.error i { background:#ff8c74; }
 .progress { height:7px; overflow:hidden; border-radius:9px; background:rgba(255,255,255,.13); }
 .progress span { display:block; width:0; height:100%; border-radius:9px; background:linear-gradient(90deg,#4dd4bd,#ffe092); transition:width .5s ease; }
-.balance-note { font-size:.73rem; margin:8px 0 0; opacity:.72; }
+.balance-note { font-size:.66rem; margin:5px 0 0; opacity:.72; }
 .action-card { padding:15px 15px 16px; margin-bottom:10px; }
 .section-heading { display:flex; justify-content:space-between; align-items:baseline; margin:0 2px 14px; }
 .section-heading span { font-weight:700; font-size:1rem; }

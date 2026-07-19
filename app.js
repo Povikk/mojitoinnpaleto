@@ -33,7 +33,7 @@ function render() {
   document.querySelector('#progress').style.width = `${state.peak ? Math.min(100, state.balance/state.peak*100) : 0}%`;
   document.querySelector('#balance-note').textContent = state.balance ? `${format(Math.max(0,state.peak-state.balance))} déjà déduits de cette ardoise.` : 'L’ardoise est vide — tout est réglé !';
   document.querySelector('#count').textContent = `${state.history.length} opération${state.history.length>1?'s':''}`;
-  document.querySelector('#history').innerHTML = state.history.length ? state.history.slice(0,8).map(item=>`
+  document.querySelector('#history').innerHTML = state.history.length ? state.history.slice(0,50).map(item=>`
     <li><span class="history-icon ${item.type}">${item.type==='add'?'+':'−'}</span>
     <span class="history-info"><b>${item.type==='add'?'Ajout à l’ardoise':`${item.quantity>1?item.quantity+' × ':''}${item.name}`}</b><small>${item.operator} · ${new Date(item.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span>
     <span class="history-amount ${item.type}">${item.type==='add'?'+':'−'} ${format(item.amount)}</span></li>`).join('') : '<li class="empty">Aucune opération pour le moment 🌺</li>';
@@ -65,7 +65,7 @@ function renderOrderLogs(){
   document.querySelector('#saved-orders-count').textContent=`${savedOrders.length} commande${savedOrders.length>1?'s':''}`;
   const products=new Map();savedOrders.forEach(order=>order.items.forEach(item=>{const label=item.logName||item.name,old=products.get(label)||{qty:0,total:0};old.qty++;old.total+=item.amount;products.set(label,old)}));
   document.querySelector('#sales-summary').innerHTML=products.size?[...products.entries()].sort((a,b)=>b[1].qty-a[1].qty).map(([name,data])=>`<li><span>${name}</span><b>${data.qty} · ${format(data.total)}</b></li>`).join(''):'<li class="empty">Aucune vente</li>';
-  document.querySelector('#order-history').innerHTML=savedOrders.length?savedOrders.slice(0,30).map(order=>{const grouped=new Map();order.items.forEach(item=>{const label=item.logName||item.name;grouped.set(label,(grouped.get(label)||0)+1)});const detail=[...grouped.entries()].map(([name,qty])=>`${qty} × ${name}`).join(', ');return `<li><span class="history-icon">✓</span><span class="history-info"><b>${detail}</b><small>${order.operator||'Sans nom'} · ${new Date(order.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount">${format(order.total)}</span></li>`}).join(''):'<li class="empty">Aucune commande enregistrée</li>';
+  document.querySelector('#order-history').innerHTML=savedOrders.length?savedOrders.slice(0,50).map(order=>{const grouped=new Map();order.items.forEach(item=>{const label=item.logName||item.name;grouped.set(label,(grouped.get(label)||0)+1)});const detail=[...grouped.entries()].map(([name,qty])=>`${qty} × ${name}`).join(', ');return `<li><span class="history-icon">✓</span><span class="history-info"><b>${detail}</b><small>${order.operator||'Sans nom'} · ${new Date(order.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount">${format(order.total)}</span></li>`}).join(''):'<li class="empty">Aucune commande enregistrée</li>';
 }
 
 function addToCart(amount,name,logName=name){ if(appMode==='tab'&&!requireName())return; cart.push({amount,name,logName}); renderCart(); toast(`${name} ajouté · total ${format(cart.reduce((s,x)=>s+x.amount,0))}`); }
