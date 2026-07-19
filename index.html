@@ -37,6 +37,7 @@
       <button class="mode-button active" type="button" data-app-mode="tab">🧾 Ardoise</button>
       <button class="mode-button" type="button" data-app-mode="order">🧮 Commande simple</button>
       <button class="mode-button" type="button" data-app-mode="expenses">💸 Dépenses</button>
+      <button class="mode-button" type="button" data-app-mode="raffle">🎟️ Tombola</button>
     </nav>
 
     <section class="card action-card">
@@ -138,6 +139,13 @@
         <div class="section-title"><div><span>Historique des dépenses</span><small id="expense-count">0 dépense</small></div><button class="reset" id="reset-expenses" type="button">Remettre à zéro</button></div>
         <ul class="history" id="expense-history"></ul>
       </section>
+    </section>
+    <section class="raffle-view">
+      <div class="card raffle-head-card"><div><small>Cagnotte tombola</small><strong id="raffle-pot">0</strong><p><span id="raffle-sold">0</span> tickets vendus · maximum <span id="raffle-max-label">0</span> par personne</p></div><span>🎟️</span></div>
+      <section class="card raffle-settings-card"><div class="section-title"><div><span>Réglages</span><small>Partagés avec tout le monde</small></div></div><form id="raffle-settings-form"><div class="expense-row"><div><label for="ticket-price">Prix par ticket</label><input class="field" id="ticket-price" inputmode="decimal" placeholder="100" required></div><div><label for="ticket-max">Maximum par personne</label><input class="field" id="ticket-max" inputmode="numeric" placeholder="10" required></div></div><button class="submit" type="submit">Enregistrer les réglages</button></form></section>
+      <section class="card raffle-entry-card"><h2>Ajouter un participant</h2><form id="raffle-entry-form"><label for="raffle-name">Nom</label><input class="field" id="raffle-name" maxlength="50" placeholder="Nom du participant" required><div class="expense-row"><div><label for="raffle-tickets">Nombre de tickets</label><input class="field" id="raffle-tickets" inputmode="numeric" value="1" min="1" required></div><div class="ticket-cost"><small>Montant</small><strong id="raffle-entry-cost">0</strong></div></div><button class="submit add" type="submit">Ajouter les tickets</button></form></section>
+      <section class="card raffle-draw-card"><div class="winner" id="raffle-winner"><span>🏆</span><div><small>Gagnant</small><strong>Pas encore tiré</strong></div></div><button class="submit draw-button" id="draw-winner" type="button">🎲 Tirer un gagnant</button></section>
+      <section class="card raffle-list-card"><div class="section-title"><div><span>Participants</span><small id="raffle-count">0 participant</small></div><button class="reset" id="reset-raffle" type="button">Remettre à zéro</button></div><ul class="history" id="raffle-list"></ul></section>
     </section>
     <footer>🌴 Mojito Inn · Les pieds dans le sable</footer>
   </main>

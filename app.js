@@ -10,6 +10,7 @@ let state = { balance: 0, peak: 0, history: [], updated: Date.now() };
 let cart = [];
 let appMode = 'tab';
 let expenses = [];
+let raffle={price:100,max:10,winner:null,entries:[]};
 let savedOrders = loadOrders();
 let happyHour = false;
 
@@ -57,6 +58,9 @@ function renderExpenses(){
   document.querySelector('#expense-history').innerHTML=expenses.length?expenses.map(item=>`<li><span class="history-icon add">−</span><span class="history-info"><b>${item.label}</b><small>${item.category} · ${item.operator} · ${new Date(item.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount">− ${format(item.amount)}</span></li>`).join(''):'<li class="empty">Aucune dépense enregistrée 🌺</li>';
 }
 
+function renderRaffle(){const sold=raffle.entries.reduce((s,x)=>s+x.tickets,0);document.querySelector('#raffle-pot').textContent=format(sold*raffle.price);document.querySelector('#raffle-sold').textContent=sold;document.querySelector('#raffle-max-label').textContent=raffle.max;document.querySelector('#ticket-price').value=raffle.price;document.querySelector('#ticket-max').value=raffle.max;document.querySelector('#raffle-count').textContent=`${raffle.entries.length} participant${raffle.entries.length>1?'s':''}`;document.querySelector('#raffle-winner').querySelector('strong').textContent=raffle.winner||'Pas encore tiré';document.querySelector('#raffle-list').innerHTML=raffle.entries.length?raffle.entries.map(x=>`<li><span class="history-icon">🎟</span><span class="history-info"><b>${x.name}</b><small>Ajouté par ${x.operator}</small></span><span class="history-amount">${x.tickets} ticket${x.tickets>1?'s':''}</span></li>`).join(''):'<li class="empty">Aucun participant pour le moment</li>';updateRaffleCost()}
+function updateRaffleCost(){const tickets=Number(document.querySelector('#raffle-tickets').value)||0;document.querySelector('#raffle-entry-cost').textContent=format(tickets*raffle.price)}
+
 function renderOrderLogs(){
   const revenue=savedOrders.reduce((sum,order)=>sum+order.total,0),itemCount=savedOrders.reduce((sum,order)=>sum+order.items.length,0);
   document.querySelector('#order-revenue').textContent=format(revenue);
@@ -74,25 +78,29 @@ function setAppMode(next){
   appMode=next; cart=[];
   document.body.classList.toggle('order-mode',appMode==='order');
   document.body.classList.toggle('expenses-mode',appMode==='expenses');
+  document.body.classList.toggle('raffle-mode',appMode==='raffle');
   document.querySelectorAll('[data-app-mode]').forEach(button=>button.classList.toggle('active',button.dataset.appMode===appMode));
   document.querySelector('.section-heading small').textContent=appMode==='tab'?'Touchez pour ajouter au panier':'Calcule la commande sans toucher à l’ardoise';
-  renderCart(); toast(appMode==='tab'?'Mode ardoise partagé':appMode==='order'?'Mode commande simple':'Suivi des dépenses');
+  renderCart(); toast(appMode==='tab'?'Mode ardoise partagé':appMode==='order'?'Mode commande simple':appMode==='expenses'?'Suivi des dépenses':'Tombola partagée');
 }
 document.querySelectorAll('[data-app-mode]').forEach(button=>button.addEventListener('click',()=>setAppMode(button.dataset.appMode)));
 document.querySelector('#theme-toggle').addEventListener('click',()=>{const next=document.body.classList.contains('theme-contrast')?'sand':'contrast';localStorage.setItem(THEME_KEY,next);applyTheme(next)});
 
 async function refresh() {
   if (!db) { syncStatus('Configuration Supabase requise', 'error'); render(); return; }
-  const [balanceResult, logsResult, expensesResult] = await Promise.all([
+  const [balanceResult, logsResult, expensesResult,raffleSettingsResult,raffleEntriesResult] = await Promise.all([
     db.from('ardoise_state').select('balance,peak,updated_at').eq('id',1).single(),
     db.from('ardoise_logs').select('operation,amount,quantity,item_name,operator_name,created_at').order('created_at',{ascending:false}).limit(50),
-    db.from('depenses').select('label,category,amount,operator_name,created_at').order('created_at',{ascending:false}).limit(100)
+    db.from('depenses').select('label,category,amount,operator_name,created_at').order('created_at',{ascending:false}).limit(100),
+    db.from('tombola_settings').select('ticket_price,max_tickets,last_winner').eq('id',1).single(),
+    db.from('tombola_entries').select('name,tickets,operator_name').order('created_at',{ascending:true})
   ]);
   if (balanceResult.error || logsResult.error) { syncStatus('Connexion impossible', 'error'); toast('Vérifie la configuration Supabase'); return; }
   const row=balanceResult.data;
   state={ balance:Number(row.balance), peak:Number(row.peak), updated:new Date(row.updated_at).getTime(), history:logsResult.data.map(x=>({type:x.operation,amount:Number(x.amount),quantity:Number(x.quantity||1),name:x.item_name,operator:x.operator_name,date:new Date(x.created_at).getTime()})) };
   expenses=expensesResult.error?[]:expensesResult.data.map(x=>({label:x.label,category:x.category,amount:Number(x.amount),operator:x.operator_name,date:new Date(x.created_at).getTime()}));
-  syncStatus('Ardoise partagée · en direct','online'); render();renderExpenses();
+  if(!raffleSettingsResult.error&&!raffleEntriesResult.error){raffle={price:Number(raffleSettingsResult.data.ticket_price),max:Number(raffleSettingsResult.data.max_tickets),winner:raffleSettingsResult.data.last_winner,entries:raffleEntriesResult.data.map(x=>({name:x.name,tickets:Number(x.tickets),operator:x.operator_name}))}}
+  syncStatus('Ardoise partagée · en direct','online'); render();renderExpenses();renderRaffle();
 }
 
 async function addTransaction(type, amount, name) {
@@ -151,6 +159,11 @@ document.querySelector('#reset-expenses').addEventListener('click',async()=>{
   if(!requireName()||!db)return;if(!confirm('Effacer tout l’historique des dépenses ?'))return;
   const {error}=await db.rpc('remettre_depenses_a_zero');if(error)return toast(`Remise à zéro impossible : ${error.message}`);await refresh();toast('Dépenses remises à zéro');
 });
+document.querySelector('#raffle-tickets').addEventListener('input',updateRaffleCost);
+document.querySelector('#raffle-settings-form').addEventListener('submit',async e=>{e.preventDefault();if(!db)return toast('Branche d’abord la base Supabase');const price=parseAmount(document.querySelector('#ticket-price').value),max=Number(document.querySelector('#ticket-max').value);if(!Number.isFinite(price)||price<=0||!Number.isInteger(max)||max<1)return toast('Réglages de tombola invalides');const{error}=await db.rpc('configurer_tombola',{p_ticket_price:price,p_max_tickets:max});if(error)return toast(error.message);await refresh();toast('Réglages de la tombola enregistrés')});
+document.querySelector('#raffle-entry-form').addEventListener('submit',async e=>{e.preventDefault();if(!requireName()||!db)return;const name=document.querySelector('#raffle-name').value.trim(),tickets=Number(document.querySelector('#raffle-tickets').value);if(!name||!Number.isInteger(tickets)||tickets<1)return toast('Participant ou tickets invalides');const{error}=await db.rpc('ajouter_tickets_tombola',{p_name:name,p_tickets:tickets,p_operator_name:operatorName});if(error)return toast(error.message);e.target.reset();document.querySelector('#raffle-tickets').value=1;await refresh();toast(`${tickets} ticket${tickets>1?'s':''} ajouté${tickets>1?'s':''} pour ${name}`)});
+document.querySelector('#draw-winner').addEventListener('click',async()=>{if(!db)return;if(!confirm('Lancer le tirage au sort maintenant ?'))return;const{data,error}=await db.rpc('tirer_gagnant_tombola');if(error)return toast(error.message);await refresh();toast(`🏆 ${data} gagne la tombola !`)});
+document.querySelector('#reset-raffle').addEventListener('click',async()=>{if(!db||!confirm('Effacer tous les participants et le gagnant ?'))return;const{error}=await db.rpc('remettre_tombola_a_zero');if(error)return toast(error.message);await refresh();toast('Tombola remise à zéro')});
 document.querySelector('#reset-orders').addEventListener('click',()=>{if(!savedOrders.length)return;if(confirm('Effacer les commandes et le récapitulatif enregistrés sur cet appareil ?')){savedOrders=[];saveOrders();toast('Historique des commandes remis à zéro')}});
-if(db){ db.channel('mojito-inn-live').on('postgres_changes',{event:'*',schema:'public',table:'ardoise_state'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'ardoise_logs'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'depenses'},refresh).subscribe(status=>{if(status==='SUBSCRIBED')syncStatus('Ardoise partagée · en direct','online')}); }
-updateMenuPrices();applyTheme(localStorage.getItem(THEME_KEY)||'sand');render(); renderCart();renderExpenses();renderOrderLogs(); refresh(); if(!operatorName)setTimeout(openName,250);
+if(db){ db.channel('mojito-inn-live').on('postgres_changes',{event:'*',schema:'public',table:'ardoise_state'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'ardoise_logs'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'depenses'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'tombola_settings'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'tombola_entries'},refresh).subscribe(status=>{if(status==='SUBSCRIBED')syncStatus('Ardoise partagée · en direct','online')}); }
+updateMenuPrices();applyTheme(localStorage.getItem(THEME_KEY)||'sand');render(); renderCart();renderExpenses();renderOrderLogs();renderRaffle(); refresh(); if(!operatorName)setTimeout(openName,250);

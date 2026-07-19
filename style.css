@@ -10,14 +10,16 @@ body::before { content:""; position:fixed; inset:0; background:linear-gradient(1
 .operator { display:inline-flex; align-items:center; gap:6px; margin-top:12px; padding:7px 12px; border:1px solid rgba(255,255,255,.35); border-radius:99px; color:white; background:rgba(0,45,48,.35); backdrop-filter:blur(8px); font-size:.7rem; }
 .brand-tools { display:flex; justify-content:center; align-items:center; gap:7px; }.theme-toggle { width:34px; height:34px; margin-top:12px; border:1px solid rgba(255,255,255,.35); border-radius:50%; background:rgba(0,45,48,.45); color:white; backdrop-filter:blur(8px); }
 .card { background:rgba(255,250,240,.94); border:1px solid rgba(255,255,255,.58); box-shadow:0 18px 45px rgba(0,31,33,.25); border-radius:24px; backdrop-filter:blur(12px); }
-.mode-switch { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin:0 0 14px; padding:5px; border:1px solid rgba(255,255,255,.55); border-radius:16px; background:rgba(3,55,58,.72); backdrop-filter:blur(10px); }
+.mode-switch { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; margin:0 0 10px; padding:4px; border:1px solid rgba(255,255,255,.55); border-radius:14px; background:rgba(3,55,58,.72); backdrop-filter:blur(10px); }
 .mode-button { border:0; border-radius:12px; padding:10px 5px; background:transparent; color:rgba(255,255,255,.72); font-size:.72rem; font-weight:700; }
 .mode-button.active { background:#fff8e9; color:var(--teal); box-shadow:0 3px 10px rgba(0,0,0,.18); }
 body.order-mode .balance-card,body.order-mode .history-card { display:none; }
 body.expenses-mode .balance-card,body.expenses-mode .action-card,body.expenses-mode .history-card { display:none; }
+body.raffle-mode .balance-card,body.raffle-mode .action-card,body.raffle-mode .history-card { display:none; }
 .order-logs-view { display:none; }
 body.order-mode .order-logs-view { display:block; }
 body.expenses-mode .order-logs-view { display:none; }
+body.raffle-mode .order-logs-view { display:none; }
 .order-stats { display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:8px; margin-bottom:10px; }
 .order-stats .card { padding:14px 12px; border-radius:16px; }
 .order-stats small,.order-stats strong { display:block; }.order-stats small { color:#76908e; font-size:.58rem; }.order-stats strong { margin-top:5px; color:var(--teal); font-size:1.15rem; }
@@ -31,6 +33,8 @@ body.expenses-mode .order-logs-view { display:none; }
 .history::-webkit-scrollbar-thumb,.sales-summary::-webkit-scrollbar-thumb { background:#b7cbc3; border-radius:10px; }
 .expenses-view { display:none; }
 body.expenses-mode .expenses-view { display:block; }
+.raffle-view { display:none; }body.expenses-mode .raffle-view { display:none; }body.raffle-mode .expenses-view { display:none; }body.raffle-mode .raffle-view { display:block; }
+.raffle-view .card { margin-bottom:10px;padding:16px; }.raffle-head-card { display:flex;justify-content:space-between;align-items:center;color:white!important;background:linear-gradient(135deg,#8a4fc4,#4b318f)!important; }.raffle-head-card small,.raffle-head-card strong { display:block; }.raffle-head-card strong { margin-top:3px;font-size:2rem; }.raffle-head-card p { margin:3px 0 0;font-size:.66rem;opacity:.8; }.raffle-head-card>span { font-size:2.5rem; }.raffle-settings-card .submit,.raffle-entry-card .submit { margin-top:11px; }.raffle-entry-card h2 { margin:0 0 12px;font-size:.9rem; }.ticket-cost { display:flex;flex-direction:column;justify-content:center;padding:4px 10px;border-radius:11px;background:#e8f1eb; }.ticket-cost small { color:#768d89;font-size:.6rem; }.ticket-cost strong { margin-top:3px;color:var(--teal); }.raffle-draw-card { text-align:center; }.winner { display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:12px; }.winner>span { font-size:2rem; }.winner small,.winner strong { display:block;text-align:left; }.winner small { color:#809492;font-size:.62rem; }.winner strong { margin-top:2px;font-size:1rem; }.draw-button { background:linear-gradient(135deg,#8a4fc4,#5b3baa); }.raffle-list-card .history { max-height:320px;overflow-y:auto; }.raffle-list-card .history-amount { color:#8051b6; }
 .expense-total-card { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding:21px 23px; color:white; background:linear-gradient(135deg,#d96550,#a94843); }
 .expense-total-card p { margin:0 0 5px; font-size:.75rem; opacity:.8; }.expense-total-card strong { font-size:2.4rem; }.expense-total-card>span { font-size:2.4rem; }
 .expense-form-card,.expense-history-card { padding:16px; margin-bottom:10px; }
