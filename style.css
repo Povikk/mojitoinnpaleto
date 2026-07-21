@@ -14,6 +14,10 @@ body::before { content:""; position:fixed; inset:0; background:linear-gradient(1
 .mode-button { border:0; border-radius:12px; padding:10px 5px; background:transparent; color:rgba(255,255,255,.72); font-size:.72rem; font-weight:700; }
 .mode-button.active { background:#fff8e9; color:var(--teal); box-shadow:0 3px 10px rgba(0,0,0,.18); }
 body.order-mode .balance-card,body.order-mode .history-card { display:none; }
+.citizen-counter-card { display:none; }
+body.order-mode .citizen-counter-card { display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;padding:13px 17px;background:linear-gradient(135deg,rgba(6,80,83,.95),rgba(7,55,60,.96));color:white; }
+.citizen-counter-card small,.citizen-counter-card strong { display:block; }.citizen-counter-card small { font-size:.67rem;opacity:.75; }.citizen-counter-card strong { margin-top:2px;font-size:2rem;line-height:1; }.counter-reset { margin-top:5px;padding:0;border:0;background:transparent;color:rgba(255,255,255,.6);font-size:.57rem; }.counter-add { min-width:105px;padding:12px 14px;border:0;border-radius:13px;background:#fff2bd;color:var(--teal);font-weight:700;font-size:1.05rem;box-shadow:0 5px 14px rgba(0,0,0,.18); }.counter-add span { font-size:.67rem; }.counter-add:active { transform:scale(.96); }
+body.expenses-mode .citizen-counter-card,body.raffle-mode .citizen-counter-card { display:none; }
 body.expenses-mode .balance-card,body.expenses-mode .action-card,body.expenses-mode .history-card { display:none; }
 body.raffle-mode .balance-card,body.raffle-mode .action-card,body.raffle-mode .history-card { display:none; }
 .order-logs-view { display:none; }

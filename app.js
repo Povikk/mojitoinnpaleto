@@ -1,6 +1,7 @@
 const NAME_KEY = 'mojito-inn-operator';
 const ORDERS_KEY = 'mojito-inn-simple-orders-v1';
 const THEME_KEY = 'mojito-inn-theme';
+const CITIZEN_SALES_KEY = 'mojito-inn-citizen-sales-v1';
 const number = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
 const config = window.MOJITO_CONFIG || {};
 const configured = /^https:\/\/.+\.supabase\.co$/.test(config.supabaseUrl || '') && !String(config.supabaseKey).startsWith('COLLE_');
@@ -11,11 +12,13 @@ let cart = [];
 let appMode = 'tab';
 let expenses = [];
 let raffle={price:100,max:10,winner:null,entries:[]};
+let citizenSales=Number(localStorage.getItem(CITIZEN_SALES_KEY))||0;
 let savedOrders = loadOrders();
 let happyHour = false;
 
 function loadOrders(){try{return JSON.parse(localStorage.getItem(ORDERS_KEY))||[]}catch{return[]}}
 function saveOrders(){localStorage.setItem(ORDERS_KEY,JSON.stringify(savedOrders));renderOrderLogs()}
+function renderCitizenSales(){document.querySelector('#citizen-sales-count').textContent=format(citizenSales)}
 function applyTheme(theme){
   if(theme!=='contrast')theme='sand';document.body.classList.toggle('theme-contrast',theme==='contrast');document.body.dataset.theme=theme;
   const button=document.querySelector('#theme-toggle');button.textContent=theme==='contrast'?'☀️':'🌙';button.setAttribute('aria-label',theme==='contrast'?'Activer le mode clair':'Activer le mode sombre');
@@ -84,6 +87,8 @@ function setAppMode(next){
   renderCart(); toast(appMode==='tab'?'Mode ardoise partagé':appMode==='order'?'Mode commande simple':appMode==='expenses'?'Suivi des dépenses':'Tombola partagée');
 }
 document.querySelectorAll('[data-app-mode]').forEach(button=>button.addEventListener('click',()=>setAppMode(button.dataset.appMode)));
+document.querySelector('#add-citizen-sale').addEventListener('click',()=>{citizenSales++;localStorage.setItem(CITIZEN_SALES_KEY,citizenSales);renderCitizenSales();toast(`Vente n°${citizenSales} ajoutée`)});
+document.querySelector('#reset-citizen-sales').addEventListener('click',()=>{if(citizenSales&&confirm('Remettre le compteur des ventes à zéro ?')){citizenSales=0;localStorage.setItem(CITIZEN_SALES_KEY,'0');renderCitizenSales();toast('Compteur remis à zéro')}});
 document.querySelector('#theme-toggle').addEventListener('click',()=>{const next=document.body.classList.contains('theme-contrast')?'sand':'contrast';localStorage.setItem(THEME_KEY,next);applyTheme(next)});
 
 async function refresh() {
@@ -166,4 +171,4 @@ document.querySelector('#draw-winner').addEventListener('click',async()=>{if(!db
 document.querySelector('#reset-raffle').addEventListener('click',async()=>{if(!db||!confirm('Effacer tous les participants et le gagnant ?'))return;const{error}=await db.rpc('remettre_tombola_a_zero');if(error)return toast(error.message);await refresh();toast('Tombola remise à zéro')});
 document.querySelector('#reset-orders').addEventListener('click',()=>{if(!savedOrders.length)return;if(confirm('Effacer les commandes et le récapitulatif enregistrés sur cet appareil ?')){savedOrders=[];saveOrders();toast('Historique des commandes remis à zéro')}});
 if(db){ db.channel('mojito-inn-live').on('postgres_changes',{event:'*',schema:'public',table:'ardoise_state'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'ardoise_logs'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'depenses'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'tombola_settings'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'tombola_entries'},refresh).subscribe(status=>{if(status==='SUBSCRIBED')syncStatus('Ardoise partagée · en direct','online')}); }
-updateMenuPrices();applyTheme(localStorage.getItem(THEME_KEY)||'sand');render(); renderCart();renderExpenses();renderOrderLogs();renderRaffle(); refresh(); if(!operatorName)setTimeout(openName,250);
+updateMenuPrices();applyTheme(localStorage.getItem(THEME_KEY)||'sand');render(); renderCart();renderExpenses();renderOrderLogs();renderRaffle();renderCitizenSales(); refresh(); if(!operatorName)setTimeout(openName,250);
