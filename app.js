@@ -72,7 +72,7 @@ function renderOrderLogs(){
   document.querySelector('#saved-orders-count').textContent=`${savedOrders.length} commande${savedOrders.length>1?'s':''}`;
   const products=new Map();savedOrders.forEach(order=>order.items.forEach(item=>{const label=item.logName||item.name,old=products.get(label)||{qty:0,total:0};old.qty++;old.total+=item.amount;products.set(label,old)}));
   document.querySelector('#sales-summary').innerHTML=products.size?[...products.entries()].sort((a,b)=>b[1].qty-a[1].qty).map(([name,data])=>`<li><span>${name}</span><b>${data.qty} · ${format(data.total)}</b></li>`).join(''):'<li class="empty">Aucune vente</li>';
-  document.querySelector('#order-history').innerHTML=savedOrders.length?savedOrders.slice(0,50).map(order=>{const grouped=new Map();order.items.forEach(item=>{const label=item.logName||item.name;grouped.set(label,(grouped.get(label)||0)+1)});const detail=[...grouped.entries()].map(([name,qty])=>`${qty} × ${name}`).join(', ');return `<li><span class="history-icon">✓</span><span class="history-info"><b>${detail}</b><small>${order.operator||'Sans nom'} · ${new Date(order.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount">${format(order.total)}</span></li>`}).join(''):'<li class="empty">Aucune commande enregistrée</li>';
+  document.querySelector('#order-history').innerHTML=savedOrders.length?savedOrders.slice(0,50).map(order=>{const grouped=new Map();order.items.forEach(item=>{const label=item.logName||item.name;grouped.set(label,(grouped.get(label)||0)+1)});const detail=[...grouped.entries()].map(([name,qty])=>`${qty} × ${name}`).join(', ');return `<li><span class="history-icon">✓</span><span class="history-info"><b>${detail}</b><small>${order.source==='ardoise'?'Ardoise · ':''}${order.operator||'Sans nom'} · ${new Date(order.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount">${format(order.total)}</span></li>`}).join(''):'<li class="empty">Aucune commande enregistrée</li>';
 }
 
 function addToCart(amount,name,logName=name){ if(appMode==='tab'&&!requireName())return; cart.push({amount,name,logName}); renderCart(); toast(`${name} ajouté · total ${format(cart.reduce((s,x)=>s+x.amount,0))}`); }
@@ -137,6 +137,7 @@ document.querySelector('#validate-cart').addEventListener('click',async()=>{
   const pending=cart.map(item=>({...item,name:item.logName||item.name})); document.querySelector('#validate-cart').disabled=true;
   const {error}=await db.rpc('appliquer_panier',{p_items:pending,p_operator_name:operatorName});
   if(error){renderCart();return toast(error.message.includes('Solde insuffisant')?'Le solde vient de changer : total insuffisant':'Panier non enregistré')}
+  savedOrders.unshift({total,items:cart.slice(),operator:operatorName,date:Date.now(),source:'ardoise'});if(savedOrders.length>200)savedOrders.length=200;saveOrders();
   cart=[];renderCart();await refresh();toast(`Panier de ${format(total)} validé ✓`);
 });
 const addModal=document.querySelector('#add-modal');
