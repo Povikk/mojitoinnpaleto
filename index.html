@@ -16,7 +16,7 @@
       <span class="brand__eyebrow">Bienvenue au</span>
       <h1>Mojito Inn</h1>
       <p>Système d’ardoise</p>
-      <div class="brand-tools"><button class="operator" id="open-name" type="button"><span>👤</span><b id="operator-name">Choisir mon nom</b></button><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Activer le mode sombre" title="Mode clair ou sombre">🌙</button></div>
+      <div class="brand-tools"><button class="operator" id="open-name" type="button"><span>👤</span><b id="operator-name">Choisir mon nom</b><em class="admin-badge" id="admin-badge" hidden>ADMIN</em></button><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Activer le mode sombre" title="Mode clair ou sombre">🌙</button></div>
     </header>
 
     <section class="card balance-card" aria-labelledby="balance-title">
@@ -116,6 +116,10 @@
         <div class="section-title"><div><span>Commandes passées</span><small id="saved-orders-count">0 commande</small></div></div>
         <ul class="history" id="order-history"></ul>
       </section>
+      <section class="card team-stats-card order-team-stats">
+        <div class="section-title"><div><span>Récapitulatif de l’équipe</span><small>Tous les employés actifs · en direct</small></div></div>
+        <div class="team-stats"></div>
+      </section>
     </section>
 
     <section class="card history-card">
@@ -124,6 +128,10 @@
         <button class="reset" id="reset" type="button">Remettre à zéro</button>
       </div>
       <ul id="history" class="history"></ul>
+    </section>
+    <section class="card team-stats-card ardoise-team-stats">
+      <div class="section-title"><div><span>Récapitulatif de l’équipe</span><small>Tous les employés actifs · en direct</small></div></div>
+      <div class="team-stats"></div>
     </section>
     <section class="expenses-view">
       <div class="card expense-total-card"><div><p>Total des dépenses</p><strong id="expense-total">0</strong></div><span>💸</span></div>

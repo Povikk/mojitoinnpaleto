@@ -13,6 +13,7 @@ let appMode = 'tab';
 let expenses = [];
 let raffle={price:100,max:10,winner:null,entries:[]};
 let citizenSales=Number(localStorage.getItem(CITIZEN_SALES_KEY))||0;
+let teamStats=[];
 let savedOrders = loadOrders();
 let happyHour = false;
 
@@ -26,12 +27,15 @@ function applyTheme(theme){
 
 const format = value => number.format(Number(value));
 const parseAmount = value => Number(value.trim().replace(/\s/g, '').replace(',', '.'));
+const isAdminName = name => ['kai','summer'].includes(String(name||'').trim().toLowerCase());
+const escapeHTML = value => String(value).replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 function toast(message) { const el=document.querySelector('#toast'); el.textContent=message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>el.classList.remove('show'),2500); }
 function syncStatus(text, kind='') { const el=document.querySelector('#sync-status'); el.className=`sync-status ${kind}`; el.querySelector('span').textContent=text; }
 function requireName() { if (operatorName) return true; openName(); return false; }
 
 function render() {
   document.querySelector('#operator-name').textContent = operatorName || 'Choisir mon nom';
+  document.querySelector('#admin-badge').hidden=!isAdminName(operatorName);
   document.querySelector('#balance').textContent = format(state.balance);
   document.querySelector('#updated').textContent = state.history.length ? `Mis à jour à ${new Date(state.updated).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}` : 'Prêt à démarrer';
   document.querySelector('#progress').style.width = `${state.peak ? Math.min(100, state.balance/state.peak*100) : 0}%`;
@@ -74,6 +78,8 @@ function renderOrderLogs(){
   document.querySelector('#sales-summary').innerHTML=products.size?[...products.entries()].sort((a,b)=>b[1].qty-a[1].qty).map(([name,data])=>`<li><span>${name}</span><b>${data.qty} · ${format(data.total)}</b></li>`).join(''):'<li class="empty">Aucune vente</li>';
   document.querySelector('#order-history').innerHTML=savedOrders.length?savedOrders.slice(0,50).map(order=>{const grouped=new Map();order.items.forEach(item=>{const label=item.logName||item.name;grouped.set(label,(grouped.get(label)||0)+1)});const detail=[...grouped.entries()].map(([name,qty])=>`${qty} × ${name}`).join(', ');return `<li><span class="history-icon">✓</span><span class="history-info"><b>${detail}</b><small>${order.source==='ardoise'?'Ardoise · ':''}${order.operator||'Sans nom'} · ${new Date(order.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount">${format(order.total)}</span></li>`}).join(''):'<li class="empty">Aucune commande enregistrée</li>';
 }
+function renderTeamStats(){const admin=isAdminName(operatorName),html=teamStats.length?teamStats.map((person,index)=>`<div class="team-member"><span class="team-member-head"><b>${escapeHTML(person.name)}${isAdminName(person.name)?'<em class="team-admin-label">ADMIN</em>':''}</b>${admin&&person.name.toLowerCase()!==operatorName.toLowerCase()?`<button class="admin-reset-member" data-team-reset="${index}" type="button">Mettre à zéro</button>`:''}</span><div><span><small>Encaissé</small><strong>${format(person.revenue)}</strong></span><span><small>Articles</small><strong>${person.items}</strong></span><span><small>Commandes</small><strong>${person.orders}</strong></span></div></div>`).join(''):'<div class="team-empty">Aucun total partagé pour le moment</div>';document.querySelectorAll('.team-stats').forEach(container=>container.innerHTML=html)}
+async function syncPersonalStats(revenue,items,orders){if(!db||!operatorName)return;const{error}=await db.rpc('ajouter_stats_personnelles',{p_operator_name:operatorName,p_revenue:revenue,p_items:items,p_orders:orders});if(error)console.error('Stats équipe',error)}
 
 function addToCart(amount,name,logName=name){ if(appMode==='tab'&&!requireName())return; cart.push({amount,name,logName}); renderCart(); toast(`${name} ajouté · total ${format(cart.reduce((s,x)=>s+x.amount,0))}`); }
 
@@ -93,19 +99,21 @@ document.querySelector('#theme-toggle').addEventListener('click',()=>{const next
 
 async function refresh() {
   if (!db) { syncStatus('Configuration Supabase requise', 'error'); render(); return; }
-  const [balanceResult, logsResult, expensesResult,raffleSettingsResult,raffleEntriesResult] = await Promise.all([
+  const [balanceResult, logsResult, expensesResult,raffleSettingsResult,raffleEntriesResult,teamStatsResult] = await Promise.all([
     db.from('ardoise_state').select('balance,peak,updated_at').eq('id',1).single(),
     db.from('ardoise_logs').select('operation,amount,quantity,item_name,operator_name,created_at').order('created_at',{ascending:false}).limit(50),
     db.from('depenses').select('label,category,amount,operator_name,created_at').order('created_at',{ascending:false}).limit(100),
     db.from('tombola_settings').select('ticket_price,max_tickets,last_winner').eq('id',1).single(),
-    db.from('tombola_entries').select('name,tickets,operator_name').order('created_at',{ascending:true})
+    db.from('tombola_entries').select('name,tickets,operator_name').order('created_at',{ascending:true}),
+    db.from('stats_equipe').select('operator_name,revenue,items,orders').or('revenue.gt.0,items.gt.0,orders.gt.0').order('revenue',{ascending:false})
   ]);
   if (balanceResult.error || logsResult.error) { syncStatus('Connexion impossible', 'error'); toast('Vérifie la configuration Supabase'); return; }
   const row=balanceResult.data;
   state={ balance:Number(row.balance), peak:Number(row.peak), updated:new Date(row.updated_at).getTime(), history:logsResult.data.map(x=>({type:x.operation,amount:Number(x.amount),quantity:Number(x.quantity||1),name:x.item_name,operator:x.operator_name,date:new Date(x.created_at).getTime()})) };
   expenses=expensesResult.error?[]:expensesResult.data.map(x=>({label:x.label,category:x.category,amount:Number(x.amount),operator:x.operator_name,date:new Date(x.created_at).getTime()}));
   if(!raffleSettingsResult.error&&!raffleEntriesResult.error){raffle={price:Number(raffleSettingsResult.data.ticket_price),max:Number(raffleSettingsResult.data.max_tickets),winner:raffleSettingsResult.data.last_winner,entries:raffleEntriesResult.data.map(x=>({name:x.name,tickets:Number(x.tickets),operator:x.operator_name}))}}
-  syncStatus('Ardoise partagée · en direct','online'); render();renderExpenses();renderRaffle();
+  teamStats=teamStatsResult.error?[]:teamStatsResult.data.map(x=>({name:x.operator_name,revenue:Number(x.revenue),items:Number(x.items),orders:Number(x.orders)}));
+  syncStatus('Ardoise partagée · en direct','online'); render();renderExpenses();renderRaffle();renderTeamStats();
 }
 
 async function addTransaction(type, amount, name) {
@@ -131,13 +139,14 @@ document.querySelector('#clear-cart').addEventListener('click',()=>{cart=[];rend
 document.querySelector('#validate-cart').addEventListener('click',async()=>{
   if(!cart.length)return;
   const total=cart.reduce((s,x)=>s+x.amount,0);
-  if(appMode==='order'){savedOrders.unshift({total,items:cart.slice(),operator:operatorName||'Sans nom',date:Date.now()});if(savedOrders.length>200)savedOrders.length=200;saveOrders();cart=[];renderCart();toast(`Commande de ${format(total)} encaissée ✓`);return}
+  if(appMode==='order'){if(!requireName())return;savedOrders.unshift({total,items:cart.slice(),operator:operatorName,date:Date.now()});if(savedOrders.length>200)savedOrders.length=200;saveOrders();await syncPersonalStats(total,cart.length,1);cart=[];renderCart();await refresh();toast(`Commande de ${format(total)} encaissée ✓`);return}
   if(!requireName()||!db){if(!db)toast('Branche d’abord la base Supabase');return}
   if(total>state.balance)return toast(`Total ${format(total)} · il reste seulement ${format(state.balance)}`);
   const pending=cart.map(item=>({...item,name:item.logName||item.name})); document.querySelector('#validate-cart').disabled=true;
   const {error}=await db.rpc('appliquer_panier',{p_items:pending,p_operator_name:operatorName});
   if(error){renderCart();return toast(error.message.includes('Solde insuffisant')?'Le solde vient de changer : total insuffisant':'Panier non enregistré')}
   savedOrders.unshift({total,items:cart.slice(),operator:operatorName,date:Date.now(),source:'ardoise'});if(savedOrders.length>200)savedOrders.length=200;saveOrders();
+  await syncPersonalStats(total,cart.length,1);
   cart=[];renderCart();await refresh();toast(`Panier de ${format(total)} validé ✓`);
 });
 const addModal=document.querySelector('#add-modal');
@@ -170,6 +179,7 @@ document.querySelector('#raffle-settings-form').addEventListener('submit',async 
 document.querySelector('#raffle-entry-form').addEventListener('submit',async e=>{e.preventDefault();if(!requireName()||!db)return;const name=document.querySelector('#raffle-name').value.trim(),tickets=Number(document.querySelector('#raffle-tickets').value);if(!name||!Number.isInteger(tickets)||tickets<1)return toast('Participant ou tickets invalides');const{error}=await db.rpc('ajouter_tickets_tombola',{p_name:name,p_tickets:tickets,p_operator_name:operatorName});if(error)return toast(error.message);e.target.reset();document.querySelector('#raffle-tickets').value=1;await refresh();toast(`${tickets} ticket${tickets>1?'s':''} ajouté${tickets>1?'s':''} pour ${name}`)});
 document.querySelector('#draw-winner').addEventListener('click',async()=>{if(!db)return;if(!confirm('Lancer le tirage au sort maintenant ?'))return;const{data,error}=await db.rpc('tirer_gagnant_tombola');if(error)return toast(error.message);await refresh();toast(`🏆 ${data} gagne la tombola !`)});
 document.querySelector('#reset-raffle').addEventListener('click',async()=>{if(!db||!confirm('Effacer tous les participants et le gagnant ?'))return;const{error}=await db.rpc('remettre_tombola_a_zero');if(error)return toast(error.message);await refresh();toast('Tombola remise à zéro')});
-document.querySelector('#reset-orders').addEventListener('click',()=>{if(!savedOrders.length)return;if(confirm('Effacer les commandes et le récapitulatif enregistrés sur cet appareil ?')){savedOrders=[];saveOrders();toast('Historique des commandes remis à zéro')}});
-if(db){ db.channel('mojito-inn-live').on('postgres_changes',{event:'*',schema:'public',table:'ardoise_state'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'ardoise_logs'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'depenses'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'tombola_settings'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'tombola_entries'},refresh).subscribe(status=>{if(status==='SUBSCRIBED')syncStatus('Ardoise partagée · en direct','online')}); }
-updateMenuPrices();applyTheme(localStorage.getItem(THEME_KEY)||'sand');render(); renderCart();renderExpenses();renderOrderLogs();renderRaffle();renderCitizenSales(); refresh(); if(!operatorName)setTimeout(openName,250);
+document.querySelector('#reset-orders').addEventListener('click',async()=>{if(!requireName())return;if(confirm('Effacer tes commandes locales et tes totaux partagés ?')){savedOrders=[];saveOrders();if(db){const{error}=await db.rpc('remettre_stats_personnelles_a_zero',{p_operator_name:operatorName});if(error)console.error(error);await refresh()}toast('Tes statistiques ont été remises à zéro')}});
+document.addEventListener('click',async event=>{const button=event.target.closest('[data-team-reset]');if(!button||!isAdminName(operatorName)||!db)return;const person=teamStats[Number(button.dataset.teamReset)];if(!person||!confirm(`Remettre les totaux de ${person.name} à zéro ?`))return;const{error}=await db.rpc('admin_remettre_stats_a_zero',{p_requester_name:operatorName,p_target_name:person.name});if(error)return toast(error.message);await refresh();toast(`Totaux de ${person.name} remis à zéro`)});
+if(db){ db.channel('mojito-inn-live').on('postgres_changes',{event:'*',schema:'public',table:'ardoise_state'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'ardoise_logs'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'depenses'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'tombola_settings'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'tombola_entries'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'stats_equipe'},refresh).subscribe(status=>{if(status==='SUBSCRIBED')syncStatus('Ardoise partagée · en direct','online')}); }
+updateMenuPrices();applyTheme(localStorage.getItem(THEME_KEY)||'sand');render(); renderCart();renderExpenses();renderOrderLogs();renderRaffle();renderCitizenSales();renderTeamStats(); refresh(); if(!operatorName)setTimeout(openName,250);
