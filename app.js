@@ -44,7 +44,7 @@ function render() {
   document.querySelector('#history').innerHTML = state.history.length ? state.history.slice(0,50).map(item=>`
     <li><span class="history-icon ${item.type}">${item.type==='add'?'+':'−'}</span>
     <span class="history-info"><b>${item.type==='add'?'Ajout à l’ardoise':`${item.quantity>1?item.quantity+' × ':''}${item.name}`}</b><small>${item.operator} · ${new Date(item.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span>
-    <span class="history-amount ${item.type}">${item.type==='add'?'+':'−'} ${format(item.amount)}</span></li>`).join('') : '<li class="empty">Aucune opération pour le moment 🌺</li>';
+    <span class="history-amount ${item.type}">${item.type==='add'?'+':'−'} ${format(item.amount)}</span>${item.type==='payment'&&(isAdminName(operatorName)||item.operator.toLowerCase()===operatorName.toLowerCase())?`<button class="log-delete" data-log-delete="${item.id}" type="button" title="Annuler cette ligne">×</button>`:''}</li>`).join('') : '<li class="empty">Aucune opération pour le moment 🌺</li>';
 }
 
 function renderCart() {
@@ -70,9 +70,10 @@ function updateRaffleCost(){const tickets=Number(document.querySelector('#raffle
 
 function renderOrderLogs(){
   const revenue=savedOrders.reduce((sum,order)=>sum+order.total,0),itemCount=savedOrders.reduce((sum,order)=>sum+order.items.length,0);
-  document.querySelector('#order-revenue').textContent=format(revenue);
-  document.querySelector('#order-items').textContent=format(itemCount);
-  document.querySelector('#order-count').textContent=format(savedOrders.length);
+  const shared=teamStats.find(person=>person.name.toLowerCase()===operatorName.toLowerCase());
+  document.querySelector('#order-revenue').textContent=format(shared?shared.revenue:revenue);
+  document.querySelector('#order-items').textContent=format(shared?shared.items:itemCount);
+  document.querySelector('#order-count').textContent=format(shared?shared.orders:savedOrders.length);
   document.querySelector('#saved-orders-count').textContent=`${savedOrders.length} commande${savedOrders.length>1?'s':''}`;
   const products=new Map();savedOrders.forEach(order=>order.items.forEach(item=>{const label=item.logName||item.name,old=products.get(label)||{qty:0,total:0};old.qty++;old.total+=item.amount;products.set(label,old)}));
   document.querySelector('#sales-summary').innerHTML=products.size?[...products.entries()].sort((a,b)=>b[1].qty-a[1].qty).map(([name,data])=>`<li><span>${name}</span><b>${data.qty} · ${format(data.total)}</b></li>`).join(''):'<li class="empty">Aucune vente</li>';
@@ -101,7 +102,7 @@ async function refresh() {
   if (!db) { syncStatus('Configuration Supabase requise', 'error'); render(); return; }
   const [balanceResult, logsResult, expensesResult,raffleSettingsResult,raffleEntriesResult,teamStatsResult] = await Promise.all([
     db.from('ardoise_state').select('balance,peak,updated_at').eq('id',1).single(),
-    db.from('ardoise_logs').select('operation,amount,quantity,item_name,operator_name,created_at').order('created_at',{ascending:false}).limit(50),
+    db.from('ardoise_logs').select('id,operation,amount,quantity,item_name,operator_name,created_at').order('created_at',{ascending:false}).limit(50),
     db.from('depenses').select('label,category,amount,operator_name,created_at').order('created_at',{ascending:false}).limit(100),
     db.from('tombola_settings').select('ticket_price,max_tickets,last_winner').eq('id',1).single(),
     db.from('tombola_entries').select('name,tickets,operator_name').order('created_at',{ascending:true}),
@@ -109,11 +110,11 @@ async function refresh() {
   ]);
   if (balanceResult.error || logsResult.error) { syncStatus('Connexion impossible', 'error'); toast('Vérifie la configuration Supabase'); return; }
   const row=balanceResult.data;
-  state={ balance:Number(row.balance), peak:Number(row.peak), updated:new Date(row.updated_at).getTime(), history:logsResult.data.map(x=>({type:x.operation,amount:Number(x.amount),quantity:Number(x.quantity||1),name:x.item_name,operator:x.operator_name,date:new Date(x.created_at).getTime()})) };
+  state={ balance:Number(row.balance), peak:Number(row.peak), updated:new Date(row.updated_at).getTime(), history:logsResult.data.map(x=>({id:x.id,type:x.operation,amount:Number(x.amount),quantity:Number(x.quantity||1),name:x.item_name,operator:x.operator_name,date:new Date(x.created_at).getTime()})) };
   expenses=expensesResult.error?[]:expensesResult.data.map(x=>({label:x.label,category:x.category,amount:Number(x.amount),operator:x.operator_name,date:new Date(x.created_at).getTime()}));
   if(!raffleSettingsResult.error&&!raffleEntriesResult.error){raffle={price:Number(raffleSettingsResult.data.ticket_price),max:Number(raffleSettingsResult.data.max_tickets),winner:raffleSettingsResult.data.last_winner,entries:raffleEntriesResult.data.map(x=>({name:x.name,tickets:Number(x.tickets),operator:x.operator_name}))}}
   teamStats=teamStatsResult.error?[]:teamStatsResult.data.map(x=>({name:x.operator_name,revenue:Number(x.revenue),items:Number(x.items),orders:Number(x.orders)}));
-  syncStatus('Ardoise partagée · en direct','online'); render();renderExpenses();renderRaffle();renderTeamStats();
+  syncStatus('Ardoise partagée · en direct','online'); render();renderExpenses();renderRaffle();renderTeamStats();renderOrderLogs();
 }
 
 async function addTransaction(type, amount, name) {
@@ -181,5 +182,6 @@ document.querySelector('#draw-winner').addEventListener('click',async()=>{if(!db
 document.querySelector('#reset-raffle').addEventListener('click',async()=>{if(!db||!confirm('Effacer tous les participants et le gagnant ?'))return;const{error}=await db.rpc('remettre_tombola_a_zero');if(error)return toast(error.message);await refresh();toast('Tombola remise à zéro')});
 document.querySelector('#reset-orders').addEventListener('click',async()=>{if(!requireName())return;if(confirm('Effacer tes commandes locales et tes totaux partagés ?')){savedOrders=[];saveOrders();if(db){const{error}=await db.rpc('remettre_stats_personnelles_a_zero',{p_operator_name:operatorName});if(error)console.error(error);await refresh()}toast('Tes statistiques ont été remises à zéro')}});
 document.addEventListener('click',async event=>{const button=event.target.closest('[data-team-reset]');if(!button||!isAdminName(operatorName)||!db)return;const person=teamStats[Number(button.dataset.teamReset)];if(!person||!confirm(`Remettre les totaux de ${person.name} à zéro ?`))return;const{error}=await db.rpc('admin_remettre_stats_a_zero',{p_requester_name:operatorName,p_target_name:person.name});if(error)return toast(error.message);await refresh();toast(`Totaux de ${person.name} remis à zéro`)});
+document.querySelector('#history').addEventListener('click',async event=>{const button=event.target.closest('[data-log-delete]');if(!button||!db)return;const item=state.history.find(row=>String(row.id)===button.dataset.logDelete);if(!item||!confirm(`Annuler « ${item.quantity>1?item.quantity+' × ':''}${item.name} » ? Le montant sera remis sur l’ardoise.`))return;button.disabled=true;const{error}=await db.rpc('annuler_ligne_ardoise',{p_log_id:item.id,p_requester_name:operatorName});if(error){button.disabled=false;return toast(error.message)}await refresh();toast('Ligne annulée et totaux corrigés')});
 if(db){ db.channel('mojito-inn-live').on('postgres_changes',{event:'*',schema:'public',table:'ardoise_state'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'ardoise_logs'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'depenses'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'tombola_settings'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'tombola_entries'},refresh).on('postgres_changes',{event:'*',schema:'public',table:'stats_equipe'},refresh).subscribe(status=>{if(status==='SUBSCRIBED')syncStatus('Ardoise partagée · en direct','online')}); }
 updateMenuPrices();applyTheme(localStorage.getItem(THEME_KEY)||'sand');render(); renderCart();renderExpenses();renderOrderLogs();renderRaffle();renderCitizenSales();renderTeamStats(); refresh(); if(!operatorName)setTimeout(openName,250);

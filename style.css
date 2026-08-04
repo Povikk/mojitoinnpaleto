@@ -123,6 +123,7 @@ label { display:block; font-size:.78rem; font-weight:700; margin:0 0 7px 3px; }
 .history-info b { display:block; font-size:.78rem; }
 .history-info small { color:#8ba09f; font-size:.65rem; }
 .history-amount { font-weight:700; font-size:.83rem; color:#16806d; }
+.log-delete { flex:0 0 auto;width:25px;height:25px;padding:0;border:0;border-radius:50%;background:#f2ded8;color:#a85043;font-size:1rem;line-height:1; }.log-delete:hover { background:#eecbc2; }
 .history-amount.add { color:#d45f4e; }
 .empty { display:block!important; text-align:center; color:#849b99; padding:20px 5px!important; font-size:.76rem; }
 footer { color:rgba(255,255,255,.8); text-align:center; margin:19px 0 0; font-size:.66rem; text-shadow:0 2px 6px #000; }
@@ -151,6 +152,7 @@ body.theme-contrast .cart,body.theme-contrast .custom-row,body.theme-contrast .s
 body.theme-contrast .product strong,body.theme-contrast .history-amount,body.theme-contrast .cart-head strong { color:#75f1de; }
 body.theme-contrast .history-info small,body.theme-contrast .price-title,body.theme-contrast .section-heading small,body.theme-contrast .order-stats small { color:#c0d7d3; }
 body.theme-contrast .history-icon { background:#174640; color:#75f1de; }body.theme-contrast .history-icon.add { background:#552d29; color:#ff9d83; }body.theme-contrast .reset { color:#ffab96; }body.theme-contrast input::placeholder { color:#9cb3af; }body.theme-contrast select { color-scheme:dark; }
+body.theme-contrast .log-delete { background:#552d29;color:#ffb09e; }
 body.theme-contrast .happy-toggle { background:#322c1d;border-color:#b88c4c;color:#ffe2a7; }body.theme-contrast .happy-toggle.active { background:#b44537;border-color:#ff9d83;color:#fff; }
 body.theme-contrast .detail-menu { background:#102829;border-color:#668481; }body.theme-contrast .detail-menu summary small { color:#b7ceca; }body.theme-contrast .detail-content { border-color:#345352; }
 body.theme-contrast .menu-view-switch { background:#102829; }body.theme-contrast .menu-view-switch button { color:#aac3bf; }body.theme-contrast .menu-view-switch button.active { background:#214344;color:#fff; }
