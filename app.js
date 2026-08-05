@@ -161,10 +161,10 @@ document.querySelectorAll('.product').forEach(button=>button.addEventListener('c
 document.querySelector('#custom-form').addEventListener('submit',e=>{e.preventDefault();const input=document.querySelector('#custom-amount');const amount=parseAmount(input.value);if(!Number.isFinite(amount)||amount<=0)return toast('Entre un montant libre supérieur à zéro');addToCart(amount,'Montant libre');input.value=''});
 document.querySelector('#undo-item').addEventListener('click',()=>{const item=cart.pop();renderCart();if(item)toast(`${item.name} retiré du panier`)});
 document.querySelector('#clear-cart').addEventListener('click',()=>{cart=[];renderCart();toast('Panier vidé')});
-document.querySelector('#validate-cart').addEventListener('click',async()=>{
-  if(!cart.length)return;
+const orderChoiceModal=document.querySelector('#order-choice-modal');
+async function completeSimpleOrder(){const total=cart.reduce((s,x)=>s+x.amount,0);savedOrders.unshift({total,items:cart.slice(),operator:operatorName,date:Date.now()});if(savedOrders.length>200)savedOrders.length=200;saveOrders();await syncPersonalStats(total,cart.length,1);cart=[];renderCart();await refresh();toast(`Commande de ${format(total)} encaissée ✓`)}
+async function completeTabOrder(){
   const total=cart.reduce((s,x)=>s+x.amount,0);
-  if(appMode==='order'){if(!requireName())return;savedOrders.unshift({total,items:cart.slice(),operator:operatorName,date:Date.now()});if(savedOrders.length>200)savedOrders.length=200;saveOrders();await syncPersonalStats(total,cart.length,1);cart=[];renderCart();await refresh();toast(`Commande de ${format(total)} encaissée ✓`);return}
   if(!requireName()||!db){if(!db)toast('Branche d’abord la base Supabase');return}
   if(total>state.balance)return toast(`Total ${format(total)} · il reste seulement ${format(state.balance)}`);
   const pending=cart.map(item=>({...item,name:item.logName||item.name})); document.querySelector('#validate-cart').disabled=true;
@@ -173,7 +173,22 @@ document.querySelector('#validate-cart').addEventListener('click',async()=>{
   savedOrders.unshift({total,items:cart.slice(),operator:operatorName,date:Date.now(),source:'ardoise'});if(savedOrders.length>200)savedOrders.length=200;saveOrders();
   await syncPersonalStats(total,cart.length,1);
   cart=[];renderCart();await refresh();toast(`Panier de ${format(total)} validé ✓`);
+}
+document.querySelector('#validate-cart').addEventListener('click',async()=>{
+  if(!cart.length)return;
+  const total=cart.reduce((s,x)=>s+x.amount,0);
+  if(appMode==='order'){
+    if(!requireName())return;
+    if(state.balance>0){document.querySelector('#choice-balance').textContent=format(state.balance);document.querySelector('#choice-order-total').textContent=format(total);const transfer=document.querySelector('#transfer-order-tab'),possible=Boolean(db)&&total<=state.balance;transfer.disabled=!possible;document.querySelector('#transfer-order-note').textContent=possible?'Le transfert déduira automatiquement la commande de l’ardoise.':total>state.balance?'Transfert impossible : la commande dépasse le montant restant sur l’ardoise.':'Transfert impossible : Supabase n’est pas connecté.';orderChoiceModal.showModal();return}
+    await completeSimpleOrder();return
+  }
+  await completeTabOrder();
 });
+document.querySelector('#close-order-choice').addEventListener('click',()=>orderChoiceModal.close());
+document.querySelector('#cancel-order-choice').addEventListener('click',()=>orderChoiceModal.close());
+orderChoiceModal.addEventListener('click',event=>{if(event.target===orderChoiceModal)orderChoiceModal.close()});
+document.querySelector('#confirm-simple-order').addEventListener('click',async()=>{orderChoiceModal.close();await completeSimpleOrder()});
+document.querySelector('#transfer-order-tab').addEventListener('click',async()=>{orderChoiceModal.close();await completeTabOrder()});
 const addModal=document.querySelector('#add-modal');
 document.querySelector('#open-add').addEventListener('click',()=>{ if(!requireName())return; addModal.showModal(); setTimeout(()=>document.querySelector('#add-amount').focus(),50); });
 document.querySelector('#close-add').addEventListener('click',()=>addModal.close());

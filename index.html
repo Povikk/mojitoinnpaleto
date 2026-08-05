@@ -194,6 +194,20 @@
       <button class="submit" type="submit">Continuer</button>
     </form>
   </dialog>
+  <dialog class="modal order-choice-modal" id="order-choice-modal">
+    <div class="order-choice-content">
+      <button class="modal-close" id="close-order-choice" type="button" aria-label="Fermer">×</button>
+      <span class="modal-icon">⚠️</span>
+      <h2>Une ardoise est encore active</h2>
+      <p>Il reste <strong id="choice-balance">0</strong> sur l’ardoise. Que veux-tu faire avec cette commande de <strong id="choice-order-total">0</strong> ?</p>
+      <div class="order-choice-actions">
+        <button class="submit" id="confirm-simple-order" type="button">Encaisser en commande simple</button>
+        <button class="submit add" id="transfer-order-tab" type="button">Transférer vers l’ardoise</button>
+        <button class="choice-cancel" id="cancel-order-choice" type="button">Annuler</button>
+      </div>
+      <small id="transfer-order-note"></small>
+    </div>
+  </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
