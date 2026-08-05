@@ -42,6 +42,7 @@
       <button class="mode-button" type="button" data-app-mode="order">🧮 Commande simple</button>
       <button class="mode-button" type="button" data-app-mode="expenses">💸 Dépenses</button>
       <button class="mode-button" type="button" data-app-mode="raffle">🎟️ Tombola</button>
+      <button class="mode-button" type="button" data-app-mode="games">🏆 Jeux</button>
     </nav>
 
     <section class="card action-card">
@@ -158,6 +159,13 @@
       <section class="card raffle-entry-card"><h2>Ajouter un participant</h2><form id="raffle-entry-form"><label for="raffle-name">Nom</label><input class="field" id="raffle-name" maxlength="50" placeholder="Nom du participant" required><div class="expense-row"><div><label for="raffle-tickets">Nombre de tickets</label><input class="field" id="raffle-tickets" inputmode="numeric" value="1" min="1" required></div><div class="ticket-cost"><small>Montant</small><strong id="raffle-entry-cost">0</strong></div></div><button class="submit add" type="submit">Ajouter les tickets</button></form></section>
       <section class="card raffle-draw-card"><div class="winner" id="raffle-winner"><span>🏆</span><div><small>Gagnant</small><strong>Pas encore tiré</strong></div></div><button class="submit draw-button" id="draw-winner" type="button">🎲 Tirer un gagnant</button></section>
       <section class="card raffle-list-card"><div class="section-title"><div><span>Participants</span><small id="raffle-count">0 participant</small></div><button class="reset" id="reset-raffle" type="button">Remettre à zéro</button></div><ul class="history" id="raffle-list"></ul></section>
+    </section>
+    <section class="games-view">
+      <section class="card game-title-card"><form id="game-settings-form"><div class="game-title-row"><select class="field" id="game-type"><option>Blind Test</option><option>Quiz</option><option>Karaoké</option><option>Défi</option><option>Autre</option></select><input class="field" id="game-title" maxlength="60" placeholder="Nom de la partie"><button type="submit">✓</button></div></form></section>
+      <div class="game-stats"><div class="card"><small>Participants</small><strong id="game-player-count">0</strong></div><div class="card"><small>Points distribués</small><strong id="game-total-points">0</strong></div><div class="card"><small>En tête</small><strong id="game-leader">—</strong></div></div>
+      <section class="card game-add-card"><form id="game-player-form"><input class="field" id="game-player-name" maxlength="50" placeholder="Nom ou équipe" required><button class="submit" type="submit">＋ Ajouter</button></form></section>
+      <section class="card leaderboard-card"><div class="section-title"><div><span id="game-heading">Classement</span><small>Mise à jour en direct</small></div><button class="reset" id="reset-game" type="button">Nouvelle partie</button></div><ol class="leaderboard" id="leaderboard"></ol></section>
+      <section class="card game-log-card"><div class="section-title"><div><span>Historique des points</span><small id="game-log-count">0 attribution</small></div></div><ul class="history" id="game-log"></ul></section>
     </section>
     <footer>🌴 Mojito Inn · Les pieds dans le sable</footer>
   </main>
