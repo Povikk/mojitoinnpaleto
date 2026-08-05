@@ -1,4 +1,5 @@
 :root { --teal:#073f43; --aqua:#20a8a2; --coral:#ec765e; --cream:#fffaf0; --ink:#173e3f; }
+html { overflow-y:scroll;scrollbar-gutter:stable; }
 * { box-sizing:border-box; }
 body { margin:0; min-height:100vh; color:var(--ink); font-family:"DM Sans",sans-serif; background:#063b40 url("tropical-bar.png") center/cover fixed; }
 body::before { content:""; position:fixed; inset:0; background:linear-gradient(180deg,rgba(3,36,39,.34),rgba(3,43,47,.66)); z-index:-1; }
@@ -178,3 +179,4 @@ body.theme-contrast .game-stats strong,body.theme-contrast .score-controls stron
 body.theme-contrast .leaderboard li { background:#102829; }body.theme-contrast .previous-winner { background:#2a2040; }body.theme-contrast .previous-winner b { color:#d4bdff; }body.theme-contrast .previous-winner small { color:#b7a8cd; }
 body.theme-contrast .leaderboard-actions select { border-color:#294849;background:#102829;color:#e4f1ed; }
 .previous-winners .team-empty { grid-column:1/-1; }.winners-error { color:#b64c40!important;font-weight:700; }
+.previous-winner>b { font-size:.64rem!important; }.previous-winner ol { margin:6px 0 0;padding:0;list-style:none; }.previous-winner li { display:grid;grid-template-columns:17px minmax(0,1fr) auto;align-items:center;gap:3px;padding:3px 0;border-top:1px solid rgba(103,67,168,.12);font-size:.56rem; }.previous-winner li em { display:grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#dfd3f1;color:#6743a8;font-style:normal;font-weight:800; }.previous-winner li span { overflow:hidden;text-align:left;white-space:nowrap;text-overflow:ellipsis; }.previous-winner li strong { color:#6743a8;font-size:.53rem; }

@@ -81,7 +81,7 @@ function renderGame(){
   document.querySelector('#game-log-count').textContent=`${game.logs.length} attribution${game.logs.length>1?'s':''}`;document.querySelector('#game-log').innerHTML=game.logs.length?game.logs.slice(0,50).map(log=>`<li><span class="history-icon ${log.delta<0?'add':''}">${log.delta>0?'+':'−'}</span><span class="history-info"><b>${escapeHTML(log.player)}</b><small>${escapeHTML(log.operator)} · ${new Date(log.date).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount ${log.delta<0?'add':''}">${log.delta>0?'+':''}${log.delta}</span></li>`).join(''):'<li class="empty">Aucun point attribué</li>'
 }
 
-function renderPreviousWinners(){document.querySelector('#previous-winners').innerHTML=game.winnersError?'<div class="team-empty winners-error">Historique non installé dans Supabase</div>':game.winners.length?game.winners.map(winner=>`<div class="previous-winner"><span>🏆</span><b>${escapeHTML(winner.name)}</b><small>${escapeHTML(winner.title)} · ${winner.points} pt${winner.points>1?'s':''}</small></div>`).join(''):'<div class="team-empty">Aucune partie terminée avec des points</div>'}
+function renderPreviousWinners(){document.querySelector('#previous-winners').innerHTML=game.winnersError?'<div class="team-empty winners-error">Historique non installé dans Supabase</div>':game.winners.length?game.winners.map(game=>`<div class="previous-winner"><b>🏆 ${escapeHTML(game.title)}</b><ol><li><em>1</em><span>${escapeHTML(game.first.name)}</span><strong>${game.first.points} pt</strong></li>${game.second.name?`<li><em>2</em><span>${escapeHTML(game.second.name)}</span><strong>${game.second.points} pt</strong></li>`:''}${game.third.name?`<li><em>3</em><span>${escapeHTML(game.third.name)}</span><strong>${game.third.points} pt</strong></li>`:''}</ol></div>`).join(''):'<div class="team-empty">Aucune partie terminée avec des points</div>'}
 
 function renderOrderLogs(){
   const revenue=savedOrders.reduce((sum,order)=>sum+order.total,0),itemCount=savedOrders.reduce((sum,order)=>sum+order.items.length,0);
@@ -126,7 +126,7 @@ async function refresh() {
     db.from('game_settings').select('title,game_type').eq('id',1).single(),
     db.from('game_scores').select('id,name,points'),
     db.from('game_point_logs').select('player_name,delta,operator_name,created_at').order('created_at',{ascending:false}).limit(50),
-    db.from('game_winners').select('game_title,winner_name,points,created_at').order('created_at',{ascending:false}).limit(3)
+    db.from('game_winners').select('game_title,winner_name,points,second_name,second_points,third_name,third_points,created_at').order('created_at',{ascending:false}).limit(3)
   ]);
   if (balanceResult.error || logsResult.error) { syncStatus('Connexion impossible', 'error'); toast('Vérifie la configuration Supabase'); return; }
   const row=balanceResult.data;
@@ -134,7 +134,7 @@ async function refresh() {
   expenses=expensesResult.error?[]:expensesResult.data.map(x=>({label:x.label,category:x.category,amount:Number(x.amount),operator:x.operator_name,date:new Date(x.created_at).getTime()}));
   if(!raffleSettingsResult.error&&!raffleEntriesResult.error){raffle={price:Number(raffleSettingsResult.data.ticket_price),max:Number(raffleSettingsResult.data.max_tickets),winner:raffleSettingsResult.data.last_winner,entries:raffleEntriesResult.data.map(x=>({name:x.name,tickets:Number(x.tickets),operator:x.operator_name}))}}
   teamStats=teamStatsResult.error?[]:teamStatsResult.data.map(x=>({name:x.operator_name,revenue:Number(x.revenue),items:Number(x.items),orders:Number(x.orders)}));
-  if(!gameSettingsResult.error&&!gameScoresResult.error&&!gameLogsResult.error){game={title:gameSettingsResult.data.title,type:gameSettingsResult.data.game_type,scores:gameScoresResult.data.map(x=>({id:x.id,name:x.name,points:Number(x.points)})),logs:gameLogsResult.data.map(x=>({player:x.player_name,delta:Number(x.delta),operator:x.operator_name,date:new Date(x.created_at).getTime()})),winners:gameWinnersResult.error?[]:gameWinnersResult.data.map(x=>({title:x.game_title,name:x.winner_name,points:Number(x.points),date:new Date(x.created_at).getTime()})),winnersError:Boolean(gameWinnersResult.error)}}
+  if(!gameSettingsResult.error&&!gameScoresResult.error&&!gameLogsResult.error){game={title:gameSettingsResult.data.title,type:gameSettingsResult.data.game_type,scores:gameScoresResult.data.map(x=>({id:x.id,name:x.name,points:Number(x.points)})),logs:gameLogsResult.data.map(x=>({player:x.player_name,delta:Number(x.delta),operator:x.operator_name,date:new Date(x.created_at).getTime()})),winners:gameWinnersResult.error?[]:gameWinnersResult.data.map(x=>({title:x.game_title,first:{name:x.winner_name,points:Number(x.points)},second:{name:x.second_name,points:Number(x.second_points||0)},third:{name:x.third_name,points:Number(x.third_points||0)},date:new Date(x.created_at).getTime()})),winnersError:Boolean(gameWinnersResult.error)}}
   syncStatus('Ardoise partagée · en direct','online'); render();renderExpenses();renderRaffle();renderTeamStats();renderOrderLogs();renderGame();renderPreviousWinners();
 }
 
