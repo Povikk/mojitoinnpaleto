@@ -148,6 +148,16 @@ footer { color:rgba(255,255,255,.8); text-align:center; margin:19px 0 0; font-si
 .modal[open] { animation:pop .2s ease-out; }
 @keyframes pop { from { opacity:0; transform:translateY(15px) scale(.97) } }
 @media (max-width:430px) { .page{width:min(100% - 18px,520px);padding-top:20px}.brand{margin-bottom:14px}.brand h1{font-size:2.85rem}.balance{font-size:2.8rem}.card{border-radius:20px} }
+@media (min-width:1800px) {
+  html { font-size:18px; }
+  .page { width:min(100% - 56px,680px);padding-top:30px; }
+  .brand { margin-bottom:18px; }
+  .brand h1 { font-size:4rem; }
+  .mode-switch { margin-bottom:13px; }
+  .history-card .history,.order-history-card .history,.expense-history-card .history { max-height:430px; }
+  .leaderboard { max-height:370px; }
+  .toast { bottom:34px; }
+}
 @media (prefers-reduced-motion:reduce) { *{scroll-behavior:auto!important;transition:none!important} }
 
 /* Le thème sombre change l’application, jamais l’image tropicale de fond. */
