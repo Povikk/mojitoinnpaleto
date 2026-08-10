@@ -128,7 +128,8 @@ function renderServices(){
   document.querySelector('#service-net').textContent=format(revenue-expenseTotal);
   const now=Date.now(),openedAt=current?new Date(current.openedAt).getTime():now,currentEvents=current?salesEvents.filter(event=>event.serviceId===current.id):[];
   const duration=current?Math.max(0,now-openedAt):0,hours=Math.max(duration/3600000,1/60),hourGroups=aggregateSales(currentEvents,event=>new Date(event.date).getHours());
-  const hourEntries=[...hourGroups.entries()].sort((a,b)=>a[0]-b[0]).map(([hour,value])=>({label:`${String(hour).padStart(2,'0')}h`,value:value.revenue,title:`${value.orders} commande(s) · ${value.items} article(s)`}));
+  const serviceStartHour=current?new Date(current.openedAt).getHours():20,hourOrder=hour=>(hour-serviceStartHour+24)%24;
+  const hourEntries=[...hourGroups.entries()].sort((a,b)=>hourOrder(a[0])-hourOrder(b[0])).map(([hour,value])=>({label:`${String(hour).padStart(2,'0')}h–${String((hour+1)%24).padStart(2,'0')}h`,value:value.revenue,title:`De ${String(hour).padStart(2,'0')}h à ${String((hour+1)%24).padStart(2,'0')}h · ${value.orders} commande(s) · ${value.items} article(s)`}));
   const peak=hourEntries.reduce((best,item)=>!best||item.value>best.value?item:best,null);
   document.querySelector('#service-live-label').textContent=current?`Mis à jour en direct · ${current.name}`:'Ouvre un service pour démarrer';
   document.querySelector('#service-duration').textContent=current?formatDuration(duration):'—';
