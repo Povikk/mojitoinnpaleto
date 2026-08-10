@@ -16,7 +16,7 @@
       <span class="brand__eyebrow">Bienvenue au</span>
       <h1>Mojito Inn</h1>
       <p>Système d’ardoise</p>
-      <div class="brand-tools"><button class="operator" id="open-name" type="button"><span>👤</span><b id="operator-name">Choisir mon nom</b><em class="admin-badge" id="admin-badge" hidden>ADMIN</em></button><button class="theme-toggle sound-toggle" id="sound-toggle" type="button" aria-label="Activer les sons" title="Activer les alertes sonores"><span></span></button><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Activer le mode sombre" title="Mode clair ou sombre"><span></span></button></div>
+      <div class="brand-tools"><button class="operator" id="open-name" type="button"><span>👤</span><b id="operator-name">Choisir mon nom</b><em class="admin-badge" id="admin-badge" hidden>ADMIN</em></button><button class="theme-toggle access-settings" id="open-access-settings" type="button" aria-label="Changer le mot de passe d’accès" title="Changer le mot de passe d’accès" hidden><span>🔐</span></button><button class="theme-toggle sound-toggle" id="sound-toggle" type="button" aria-label="Activer les sons" title="Activer les alertes sonores"><span></span></button><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Activer le mode sombre" title="Mode clair ou sombre"><span></span></button></div>
     </header>
 
     <nav class="mode-switch" aria-label="Mode de caisse">
@@ -226,6 +226,22 @@
       </div>
       <small id="transfer-order-note"></small>
     </div>
+  </dialog>
+  <dialog class="modal access-modal" id="access-modal">
+    <form id="access-form">
+      <span class="modal-icon">🔒</span><h2>Accès au Mojito Inn</h2><p>Entre le mot de passe partagé pour ouvrir l’application.</p>
+      <label for="access-password">Mot de passe</label><div class="amount-input name-input"><input id="access-password" type="password" autocomplete="current-password" required></div>
+      <button class="submit" id="access-submit" type="submit">Ouvrir l’application</button><small class="access-error" id="access-error"></small>
+    </form>
+  </dialog>
+  <dialog class="modal" id="change-access-modal">
+    <form id="change-access-form">
+      <button class="modal-close" id="close-access-settings" type="button" aria-label="Fermer">×</button><span class="modal-icon">🔐</span><h2>Changer le mot de passe</h2><p>Cette action est réservée à Kai et Summer et modifiera l’accès pour tout le monde.</p>
+      <label for="current-access-password">Mot de passe actuel</label><div class="amount-input name-input"><input id="current-access-password" type="password" autocomplete="current-password" required></div>
+      <label for="new-access-password">Nouveau mot de passe</label><div class="amount-input name-input"><input id="new-access-password" type="password" minlength="6" autocomplete="new-password" required></div>
+      <label for="confirm-access-password">Confirmer</label><div class="amount-input name-input"><input id="confirm-access-password" type="password" minlength="6" autocomplete="new-password" required></div>
+      <button class="submit" type="submit">Enregistrer le nouveau mot de passe</button>
+    </form>
   </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
