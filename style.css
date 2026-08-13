@@ -217,6 +217,16 @@ footer { color:rgba(255,255,255,.8); text-align:center; margin:19px 0 0; font-si
 .access-modal { text-align:center; }.access-modal form { padding-top:31px; }.access-modal label { text-align:left; }.access-modal .modal-icon { font-size:2.5rem; }.access-error { display:block;min-height:18px;margin-top:9px;color:#c85245;font-size:.67rem;font-weight:700; }.access-settings { color:#ffe09b; }.access-settings>span { font-size:.92rem; }.access-locked .page { pointer-events:none;user-select:none;filter:blur(2px); }.access-locked .access-modal { pointer-events:auto;filter:none; }.access-modal .submit:disabled { opacity:.5; }.modal label~label { margin-top:13px; }
 @keyframes pop { from { opacity:0; transform:translateY(15px) scale(.97) } }
 @media (max-width:430px) { .page{width:min(100% - 18px,520px);padding-top:20px}.brand{margin-bottom:14px}.brand h1{font-size:2.85rem}.brand p.brand-app-label{margin-top:-4px;font-size:1.02rem;transform:translateX(58px) rotate(-2deg)}.voice-command-zone{right:-3px;top:6px;width:88px;height:88px}.voice-command-button{width:84px;height:84px}.voice-command-button span{font-size:2.15rem}.voice-command-help{position:fixed;left:9px;right:9px;top:145px;width:auto}.voice-command-help::after{display:none}.balance{font-size:2.8rem}.card{border-radius:20px}.day-stats-modal .modal-box{padding:20px 14px 15px}.day-stats-modal .service-adjust-head{grid-template-columns:1fr}.day-stats-modal .service-adjust-values{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.day-stats-modal .service-adjust-values label{font-size:.44rem}.day-seller-recap{grid-template-columns:1fr} }
+@media (max-width:600px) {
+  .brand h1{transform:translateX(-48px) rotate(-2deg)}
+  .brand p.brand-app-label{transform:translateX(5px) rotate(-2deg)}
+  .brand-tools{transform:translateX(-48px)}
+}
+@media (max-width:430px) {
+  .brand h1{transform:translateX(-42px) rotate(-2deg)}
+  .brand p.brand-app-label{transform:translateX(2px) rotate(-2deg)}
+  .brand-tools{transform:translateX(-42px)}
+}
 @media (min-width:1800px) {
   html { font-size:18px; }
   .page { width:min(100% - 56px,680px);padding-top:30px; }
