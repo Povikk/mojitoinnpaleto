@@ -212,6 +212,13 @@
     </section>
     <footer>🌴 Mojito Inn · Les pieds dans le sable</footer>
   </main>
+
+  <div class="voice-listening-overlay" id="voice-listening-overlay" aria-live="assertive" aria-hidden="true">
+    <div class="voice-listening-pulse" aria-hidden="true"><span>🎤</span></div>
+    <strong>PARLEZ MAINTENANT</strong>
+    <p>Indiquez les quantités, les produits et la destination.</p>
+    <small>Exemple : « 2 cocktails et 10 softs à l’ardoise »</small>
+  </div>
   <dialog class="modal day-stats-modal" id="day-stats-modal"><div class="modal-box"><button class="modal-close" id="close-day-stats" type="button" aria-label="Fermer">×</button><div class="modal-title"><span>📅</span><div><b id="day-stats-title">Statistiques du jour</b><small>Récapitulatif et correction par vendeur</small></div></div><div class="day-seller-recap" id="day-seller-recap"></div><form id="day-adjust-form"><input type="hidden" id="day-adjust-date"><label>Vendeur concerné</label><select class="field" id="day-adjust-person" required><option value="">Choisir un vendeur</option></select><div class="service-adjust-head"><select class="field" id="day-adjust-operation"><option value="add">Ajouter</option><option value="remove">Retirer</option></select><input class="field" id="day-adjust-note" maxlength="80" placeholder="Motif (optionnel)"></div><div class="service-adjust-values"><label>Encaissé<input class="field" id="day-adjust-revenue" type="number" min="0" step="0.01" value="0"></label><label>Articles<input class="field" id="day-adjust-items" type="number" min="0" step="1" value="0"></label><label>Commandes<input class="field" id="day-adjust-orders" type="number" min="0" step="1" value="0"></label></div><button class="submit" type="submit">Corriger cette journée</button></form></div></dialog>
   <dialog class="modal" id="add-modal">
     <form id="add-form" method="dialog">
