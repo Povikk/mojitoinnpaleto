@@ -19,6 +19,7 @@ let services={current:null,history:[]};
 let salesEvents=[];
 let weeklyStats=[];
 let selectedWeek='current';
+let selectedRestockWeek='current';
 let selectedStatsDay=null;
 let weeklyPieSellers=[];
 let eventCocktails=[];
@@ -88,6 +89,7 @@ function renderExpenses(){
   document.querySelector('#expense-total').textContent=format(total);
   document.querySelector('#expense-count').textContent=`${expenses.length} dépense${expenses.length>1?'s':''}`;
   document.querySelector('#expense-history').innerHTML=expenses.length?expenses.map(item=>`<li><span class="history-icon add">−</span><span class="history-info"><b>${escapeHTML(item.label)}</b><small>${escapeHTML(item.category)} · ${escapeHTML(item.operator)} · ${new Date(item.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount">− ${format(item.amount)}</span>${isAdminName(operatorName)||item.operator.toLowerCase()===operatorName.toLowerCase()?`<button class="log-delete" data-expense-delete="${item.id}" type="button" title="Annuler cette dépense">×</button>`:''}</li>`).join(''):'<li class="empty">Aucune dépense enregistrée 🌺</li>';
+  const restocks=expenses.filter(item=>item.category==='Réapro'),currentWeekKey=localDateKey(getServiceWeek().start),availableWeeks=[...new Set(restocks.map(item=>localDateKey(getServiceWeek(new Date(item.date)).start)))].sort().reverse(),selector=document.querySelector('#restock-week-selector');if(selectedRestockWeek!=='current'&&!availableWeeks.includes(selectedRestockWeek))selectedRestockWeek='current';selector.innerHTML=`<option value="current">${getWeekNumberLabel(getServiceWeek().start)} · actuelle</option>${availableWeeks.filter(key=>key!==currentWeekKey).map(key=>`<option value="${key}">${getWeekNumberLabel(new Date(key))}</option>`).join('')}`;selector.value=selectedRestockWeek;selector.hidden=availableWeeks.filter(key=>key!==currentWeekKey).length===0;const chosenKey=selectedRestockWeek==='current'?currentWeekKey:selectedRestockWeek,weekly=new Map();restocks.filter(item=>localDateKey(getServiceWeek(new Date(item.date)).start)===chosenKey).forEach(item=>{const count=Math.max(1,Math.round(item.amount/35)),current=weekly.get(item.operator)||{count:0,amount:0};current.count+=count;current.amount+=item.amount;weekly.set(item.operator,current)});document.querySelector('#restock-week-heading').textContent=selectedRestockWeek==='current'?'Réapros de la semaine':'Réapros de la semaine archivée';document.querySelector('#restock-week-list').innerHTML=weekly.size?[...weekly.entries()].sort((a,b)=>b[1].amount-a[1].amount).map(([name,data])=>`<article class="restock-person"><b>${escapeHTML(name)}</b><span>${data.count} réapro${data.count>1?'s':''}</span><small>${format(data.amount)} remboursables</small></article>`).join(''):'<div class="team-empty">Aucune réapro cette semaine</div>';
 }
 
 function renderGifts(){
@@ -99,6 +101,7 @@ function renderGifts(){
 
 function formatDuration(milliseconds){if(milliseconds<=0)return'0 min';const minutes=Math.floor(milliseconds/60000),hours=Math.floor(minutes/60),rest=minutes%60;return hours?`${hours} h ${String(rest).padStart(2,'0')}`:`${minutes} min`}
 function getServiceWeek(now=new Date()){const start=new Date(now);const daysSinceSunday=now.getDay();start.setDate(now.getDate()-daysSinceSunday);start.setHours(20,0,0,0);if(now<start)start.setDate(start.getDate()-7);const end=new Date(start);end.setDate(end.getDate()+7);return{start,end}}
+function getWeekNumberLabel(serviceWeekStart){const monday=new Date(serviceWeekStart);monday.setDate(monday.getDate()+1);const utc=new Date(Date.UTC(monday.getFullYear(),monday.getMonth(),monday.getDate()));const day=utc.getUTCDay()||7;utc.setUTCDate(utc.getUTCDate()+4-day);const yearStart=new Date(Date.UTC(utc.getUTCFullYear(),0,1));const week=Math.ceil((((utc-yearStart)/86400000)+1)/7);return`Semaine ${week} · ${utc.getUTCFullYear()}`}
 function getAutomaticServiceName(date=new Date()){const value=date.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long'});return value.charAt(0).toUpperCase()+value.slice(1)}
 function localDateKey(date){return`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}T${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}:00`}
 function aggregateSales(events,keyMaker){const groups=new Map();events.forEach(event=>{const key=keyMaker(event),value=groups.get(key)||{revenue:0,items:0,orders:0};value.revenue+=event.revenue;value.items+=event.items;value.orders+=event.orders;groups.set(key,value)});return groups}
@@ -142,7 +145,7 @@ function renderServices(){
   renderLineChart('#service-hourly-chart',hourEntries);
   const serviceWeek=getServiceWeek(new Date(now)),currentWeekKey=localDateKey(serviceWeek.start),availableWeeks=[...new Set(weeklyStats.map(row=>row.weekStart))].sort().reverse(),selector=document.querySelector('#week-selector');
   if(selectedWeek!=='current'&&!availableWeeks.includes(selectedWeek))selectedWeek='current';
-  selector.innerHTML=`<option value="current">Semaine actuelle</option>${availableWeeks.filter(key=>key!==currentWeekKey).map(key=>{const date=new Date(key);return`<option value="${key}">Semaine du ${date.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'})}</option>`}).join('')}`;selector.value=selectedWeek;
+  selector.innerHTML=`<option value="current">${getWeekNumberLabel(serviceWeek.start)} · actuelle</option>${availableWeeks.filter(key=>key!==currentWeekKey).map(key=>`<option value="${key}">${getWeekNumberLabel(new Date(key))}</option>`).join('')}`;selector.value=selectedWeek;
   const chosenKey=selectedWeek==='current'?currentWeekKey:selectedWeek,chosenStart=new Date(chosenKey),chosenRows=weeklyStats.filter(row=>row.weekStart===chosenKey),dayGroups=aggregateSales(chosenRows,row=>row.day);
   const dayEntries=Array.from({length:7},(_,offset)=>{const date=new Date(chosenStart);date.setDate(date.getDate()+offset);const value=dayGroups.get(date.getDay())||{revenue:0,items:0,orders:0};return{key:offset,label:date.toLocaleDateString('fr-FR',{weekday:'short'}).replace('.',''),value:value.revenue,title:`Cliquer pour le détail · ${value.orders} commande(s) · ${value.items} article(s)`,stats:value}}),weekRevenue=chosenRows.reduce((sum,row)=>sum+row.revenue,0),weekItems=chosenRows.reduce((sum,row)=>sum+row.items,0),weekOrders=chosenRows.reduce((sum,row)=>sum+row.orders,0);
   document.querySelector('#week-title').textContent=selectedWeek==='current'?'Semaine en cours':'Semaine archivée';
@@ -308,7 +311,7 @@ async function refresh() {
   const [balanceResult, logsResult, expensesResult,raffleSettingsResult,raffleEntriesResult,teamStatsResult,gameSettingsResult,gameScoresResult,gameLogsResult,gameWinnersResult,giftsResult,servicesResult,salesEventsResult,weeklyStatsResult,eventCocktailsResult,importantImagesResult,truckInventoryResult] = await Promise.all([
     db.from('ardoise_state').select('balance,peak,updated_at').eq('id',1).single(),
     db.from('ardoise_logs').select('id,operation,amount,quantity,item_name,operator_name,created_at').order('created_at',{ascending:false}).limit(50),
-    db.from('depenses').select('id,label,category,amount,operator_name,created_at').order('created_at',{ascending:false}).limit(100),
+    db.from('depenses').select('id,label,category,amount,operator_name,created_at').order('created_at',{ascending:false}).limit(1000),
     db.from('tombola_settings').select('ticket_price,max_tickets,last_winner').eq('id',1).single(),
     db.from('tombola_entries').select('name,tickets,operator_name').order('created_at',{ascending:true}),
     db.from('stats_equipe').select('operator_name,revenue,items,orders').or('revenue.gt.0,items.gt.0,orders.gt.0').order('revenue',{ascending:false}),
@@ -420,6 +423,15 @@ document.querySelector('#expense-form').addEventListener('submit',async e=>{
   if(error)return toast(`Dépense non enregistrée : ${error.message}`);
   e.target.reset();await refresh();toast(`Dépense de ${format(amount)} enregistrée ✓`);
 });
+const RESTOCK_UNIT_COST=35;
+function getRestockSelection(){return [...document.querySelectorAll('.restock-quantity')].map(input=>({name:input.dataset.restockName,count:Math.max(0,Math.min(100,Number(input.value)||0))})).filter(item=>item.count>0)}
+function updateRestockCost(){const count=getRestockSelection().reduce((sum,item)=>sum+item.count,0);document.querySelector('#restock-cost').textContent=format(count*RESTOCK_UNIT_COST)}
+document.querySelectorAll('.restock-quantity').forEach(input=>input.addEventListener('input',updateRestockCost));
+document.querySelector('#restock-week-selector').addEventListener('change',event=>{
+  selectedRestockWeek=event.target.value;
+  renderExpenses();
+});
+document.querySelector('#add-restock-expense').addEventListener('click',async event=>{if(!requireName()||!db){if(!db)toast('Branche d’abord la base Supabase');return}const selection=getRestockSelection(),count=selection.reduce((sum,item)=>sum+item.count,0);if(!count)return toast('Choisis au moins une réapro');const amount=count*RESTOCK_UNIT_COST,label=`Réapro · ${selection.map(item=>`${item.count}× ${item.name} (35 unités)`).join(', ')}`;event.currentTarget.disabled=true;const{error}=await db.rpc('ajouter_depense',{p_label:label,p_category:'Réapro',p_amount:amount,p_operator_name:operatorName});event.currentTarget.disabled=false;if(error)return toast(`Réapro non enregistrée : ${error.message}`);document.querySelectorAll('.restock-quantity').forEach(input=>input.value='0');updateRestockCost();await refresh();toast(`${count} réapro${count>1?'s':''} · ${format(amount)} remboursables ✓`)});
 document.querySelector('#reset-expenses').addEventListener('click',async()=>{
   if(!requireName()||!db)return;if(!confirm('Effacer tout l’historique des dépenses ?'))return;
   const {error}=await db.rpc('remettre_depenses_a_zero');if(error)return toast(`Remise à zéro impossible : ${error.message}`);await refresh();toast('Dépenses remises à zéro');
