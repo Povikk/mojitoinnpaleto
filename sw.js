@@ -1,5 +1,5 @@
-const CACHE_NAME='mojito-inn-pwa-v25';
-const APP_SHELL=['./','./index.html','./style.css','./app.js','./config.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./tropical-bar.png'];
+const CACHE_NAME='mojito-inn-pwa-ergonomie-v1';
+const APP_SHELL=['./','./index.html','./style.css','./app.js','./config.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./tropical-bar.webp'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));

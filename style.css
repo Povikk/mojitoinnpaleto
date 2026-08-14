@@ -1,7 +1,7 @@
 :root { --teal:#073f43; --aqua:#20a8a2; --coral:#ec765e; --cream:#fffaf0; --ink:#173e3f; }
 html { overflow-y:scroll;scrollbar-gutter:stable; }
 * { box-sizing:border-box; }
-body { margin:0; min-height:100vh; overflow-y:scroll; color:var(--ink); font-family:"DM Sans",sans-serif; background:#063b40 url("tropical-bar.png") center/cover fixed; }
+body { margin:0; min-height:100vh; overflow-y:scroll; color:var(--ink); font-family:"DM Sans",sans-serif; background:#063b40 url("tropical-bar.webp") center/cover fixed; }
 body::before { content:""; position:fixed; inset:0; background:linear-gradient(180deg,rgba(3,36,39,.34),rgba(3,43,47,.66)); z-index:-1; }
 .app-launch-screen{display:none}
 @media (display-mode:standalone),(display-mode:fullscreen),(display-mode:minimal-ui){.app-launch-screen{position:fixed;inset:0;z-index:30000;display:grid;place-items:center;background:#041c1d;pointer-events:none;animation:launch-screen-out 1.8s ease forwards}.app-launch-screen>div{display:flex;flex-direction:column;align-items:center;transform:rotate(-2deg);animation:launch-logo-in .65s cubic-bezier(.2,.8,.2,1) both}.app-launch-screen strong{color:#fff3cd;font:clamp(3.3rem,18vw,6rem)/1 Pacifico,cursive;font-weight:400;letter-spacing:-.04em;text-shadow:0 5px 24px rgba(0,0,0,.3)}.app-launch-screen span{align-self:flex-end;margin:-7px 8px 0 0;color:#f2d58e;font:clamp(1rem,5vw,1.55rem)/1 Pacifico,cursive}.app-launch-screen::after{content:"";position:absolute;bottom:12%;width:24px;height:2px;border-radius:9px;background:#32605d;box-shadow:0 0 12px rgba(95,170,161,.18)}}
@@ -306,3 +306,93 @@ body.theme-contrast .leaderboard-actions select { border-color:#294849;backgroun
 .previous-winner>b { font-size:.64rem!important; }.previous-winner ol { margin:6px 0 0;padding:0;list-style:none; }.previous-winner li { display:grid;grid-template-columns:17px minmax(0,1fr) auto;align-items:center;gap:3px;padding:3px 0;border-top:1px solid rgba(103,67,168,.12);font-size:.56rem; }.previous-winner li em { display:grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#dfd3f1;color:#6743a8;font-style:normal;font-weight:800; }.previous-winner li span { overflow:hidden;text-align:left;white-space:nowrap;text-overflow:ellipsis; }.previous-winner li strong { color:#6743a8;font-size:.53rem; }
 .previous-winner>small:first-child { margin:0 0 2px;color:#8d7ba3;font-size:.48rem;text-transform:uppercase;letter-spacing:.08em; }
 .finalize-game { min-height:30px;padding:6px 9px;border:0;border-radius:8px;background:linear-gradient(135deg,#7956bf,#5d3da6);color:white;font:inherit;font-size:.58rem;font-weight:800;box-shadow:0 3px 9px rgba(93,61,166,.28);white-space:nowrap; }.finalize-game:hover { filter:brightness(1.08); }.finalize-game:active { transform:translateY(1px); }.reset-all-winners { padding:5px 7px;border-radius:7px;background:#f2dcd7;color:#a14338;font-weight:700; }.previous-winner { min-width:0;text-align:left; }.previous-winner summary { padding:0;cursor:pointer;list-style:none; }.previous-winner summary::-webkit-details-marker { display:none; }.previous-winner summary>small,.previous-winner summary>b { display:block; }.previous-winner summary>b { overflow:hidden;color:#6743a8;font-size:.67rem;white-space:nowrap;text-overflow:ellipsis; }.winner-podium { margin:6px 0 0!important; }.previous-winner li em { width:auto!important;height:auto!important;background:transparent!important;font-size:.75rem; }.full-game-ranking { margin-top:6px;padding-top:6px;border-top:1px dashed rgba(103,67,168,.25); }.full-game-ranking>small { display:block;margin-bottom:3px;color:#7f7094;font-size:.49rem; }.full-game-ranking ol { max-height:145px;margin:0;padding:0;overflow-y:auto;list-style:none; }.full-game-ranking li em { display:block!important;color:#6743a8;font-size:.52rem!important;text-align:center; }.previous-winner:not([open]) .full-game-ranking { display:none; }body.theme-contrast .finalize-game { background:linear-gradient(135deg,#9069d6,#6945ae); }body.theme-contrast .reset-all-winners { background:#552d29;color:#ffb09e; }
+/* ==========================================================
+   Refonte ergonomique 2026 — version séparée
+   ========================================================== */
+:root {
+  --tap-target: 44px;
+  --focus-ring: #fff3a8;
+  --ui-gap: 12px;
+}
+
+body { font-size:16px; }
+button,input,select,textarea { font:inherit; }
+button { touch-action:manipulation; }
+.field,input,select,textarea { min-height:44px; font-size:.875rem !important; }
+textarea.field { min-height:72px; }
+.submit,.choice-cancel,.service-close-button { min-height:48px; font-size:.92rem !important; }
+.product { min-height:54px; }
+.product b { font-size:.78rem !important; line-height:1.2; }
+.product strong { font-size:.85rem !important; }
+.section-title span,.section-heading span,.label { font-size:1rem !important; }
+.section-title small,.section-heading small,.updated,.balance-note,.sync-status { font-size:.75rem !important; }
+.history li,.sales-summary li,.team-stat { font-size:.78rem !important; }
+.modal-close,.gift-delete,.score-button,.counter-reset { min-width:44px; min-height:44px; }
+
+:where(button,a,input,select,textarea,summary,[tabindex]):focus-visible {
+  outline:3px solid var(--focus-ring) !important;
+  outline-offset:3px !important;
+  box-shadow:0 0 0 6px rgba(4,73,77,.58) !important;
+}
+
+.connection-banner {
+  position:sticky; top:78px; z-index:80; display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin:0 auto 12px; padding:10px 14px; max-width:760px; border:1px solid #f0be6a;
+  border-radius:13px; background:#342817; color:#fff2d5; font-size:.8rem; box-shadow:0 8px 24px rgba(0,0,0,.22);
+}
+.connection-banner[hidden] { display:none; }
+.connection-banner button { min-height:38px; padding:0 14px; border:0; border-radius:10px; background:#fff0b5; color:#253332; font-weight:800; }
+
+.mobile-more-button,.mobile-more-modal { display:none; }
+.mobile-more-modal { width:min(92vw,440px); margin:auto; border:0; padding:0; border-radius:22px; background:transparent; color:var(--ink); }
+.mobile-more-modal:not([open]),.app-confirm-modal:not([open]) { display:none !important; }
+.mobile-more-modal::backdrop,.app-confirm-modal::backdrop { background:rgba(0,20,22,.7); backdrop-filter:blur(7px); }
+.mobile-more-content,.app-confirm-content { padding:20px; border:1px solid rgba(147,207,201,.35); border-radius:22px; background:#082b2d; color:#fff; box-shadow:0 24px 80px rgba(0,0,0,.5); }
+.mobile-more-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.mobile-more-head h2 { margin:0; font-size:1.15rem; }
+.mobile-more-head button { width:44px; height:44px; border:0; border-radius:50%; background:#e9f3ed; color:#153a3b; font-size:1.35rem; }
+.mobile-more-content > button:not(#close-mobile-more) { display:flex; width:100%; min-height:54px; align-items:center; gap:12px; margin-top:8px; padding:0 16px; border:1px solid #315d5e; border-radius:13px; background:#123a3c; color:#fff; font-weight:800; text-align:left; }
+
+.app-confirm-modal { width:min(92vw,430px); margin:auto; padding:0; border:0; border-radius:22px; background:transparent; }
+.app-confirm-content { text-align:center; }
+.app-confirm-content h2 { margin:8px 0; font-size:1.2rem; }
+.app-confirm-content p { margin:0 0 18px; color:#c7d8d5; line-height:1.5; }
+.app-confirm-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.app-confirm-actions button { min-height:48px; border:0; border-radius:12px; font-weight:800; }
+#app-confirm-cancel { background:#23494a; color:#fff; }
+#app-confirm-accept { background:#ce5b50; color:#fff; }
+
+.install-app-button { position:fixed; right:14px; bottom:14px; z-index:90; min-height:44px; padding:0 16px; border:1px solid #fff0b5; border-radius:999px; background:#0c4f51; color:#fff; font-size:.78rem; font-weight:800; box-shadow:0 8px 26px rgba(0,0,0,.35); }
+.cart-submit[data-loading="true"] { pointer-events:none; opacity:.65; }
+
+@media (max-width:640px) {
+  body { padding-bottom:82px; }
+  .page { padding-bottom:24px; }
+  .mode-switch {
+    position:fixed !important; left:8px; right:8px; bottom:8px; top:auto !important; z-index:100;
+    display:grid !important; grid-template-columns:repeat(4,1fr); gap:4px; margin:0 !important; padding:6px !important;
+    border:1px solid rgba(255,255,255,.3); border-radius:18px; background:rgba(4,61,64,.96); box-shadow:0 10px 35px rgba(0,0,0,.45); backdrop-filter:blur(14px);
+  }
+  .mode-switch .mode-button { display:none; min-width:0; min-height:54px; padding:5px 3px !important; border-radius:12px !important; font-size:.68rem !important; line-height:1.13; white-space:normal; }
+  .mode-switch [data-app-mode="order"],.mode-switch [data-app-mode="tab"],.mode-switch [data-app-mode="service"],.mode-switch .mobile-more-button { display:block; }
+  .mobile-more-button,.mobile-more-modal { display:block; }
+  .mode-switch .mode-button.active { background:#fff7df !important; color:#173f40 !important; }
+  .connection-banner { position:fixed; top:8px; left:8px; right:8px; z-index:120; margin:0; }
+  .action-card { padding-bottom:14px; }
+  .cart {
+    position:sticky; bottom:72px; z-index:45; margin:12px -4px 0; padding:10px 12px;
+    border:1px solid rgba(255,255,255,.24); box-shadow:0 -8px 28px rgba(0,20,22,.38); backdrop-filter:blur(14px);
+  }
+  .cart ul { max-height:92px; }
+  .cart-head b { font-size:.85rem !important; }
+  .cart-head small { font-size:.7rem !important; }
+  .cart-submit { min-height:52px; font-size:1rem !important; }
+  .product-grid { gap:7px !important; }
+  .product { min-height:58px; padding:7px 9px !important; }
+  .brand-tools button { min-width:44px; min-height:44px; }
+  .install-app-button { bottom:82px; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  *,*::before,*::after { scroll-behavior:auto !important; animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
+}
