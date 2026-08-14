@@ -1,7 +1,6 @@
 {
   "name": "Mojito Inn",
   "short_name": "Mojito Inn",
-  "id": "./?source=pwa-ergonomie",
   "description": "Gestion du Mojito Inn : commandes, ardoise, dépenses, cadeaux, jeux et services.",
   "lang": "fr",
   "start_url": "./",

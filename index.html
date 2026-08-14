@@ -31,7 +31,7 @@
       </section>
     </header>
 
-    <nav class="mode-switch" aria-label="Navigation principale" role="tablist">
+    <nav class="mode-switch" aria-label="Mode de caisse">
       <button class="mode-button" type="button" data-app-mode="order">🧮 Commande simple</button>
       <button class="mode-button active" type="button" data-app-mode="tab">🧾 Ardoise</button>
       <button class="mode-button" type="button" data-app-mode="expenses">💸 Dépenses</button>
@@ -39,13 +39,7 @@
       <button class="mode-button" type="button" data-app-mode="games">🏆 Jeux</button>
       <button class="mode-button admin-service-tab" type="button" data-app-mode="service">📊 Service</button>
       <button class="mode-button" type="button" data-app-mode="misc">📌 Divers</button>
-      <button class="mode-button mobile-more-button" id="open-mobile-more" type="button" aria-haspopup="dialog">••• Plus</button>
     </nav>
-
-    <div class="connection-banner" id="connection-banner" role="status" aria-live="polite" hidden>
-      <span>⚠️ Mode hors ligne — les actions partagées sont momentanément indisponibles.</span>
-      <button type="button" id="retry-connection">Réessayer</button>
-    </div>
 
     <section class="card balance-card" aria-labelledby="balance-title">
       <div class="balance-top">
@@ -228,26 +222,6 @@
   </main>
 
   <button class="remote-alert" id="remote-alert" type="button" aria-live="polite"><span>🌴</span><b></b><small>Voir l’ardoise</small></button>
-  <button class="install-app-button" id="install-app-button" type="button" hidden>Installer l’application</button>
-
-  <dialog class="mobile-more-modal" id="mobile-more-modal" aria-labelledby="mobile-more-title">
-    <div class="mobile-more-content">
-      <div class="mobile-more-head"><h2 id="mobile-more-title">Plus d’outils</h2><button id="close-mobile-more" type="button" aria-label="Fermer">×</button></div>
-      <button type="button" data-mobile-mode="expenses">💸 <span>Dépenses</span></button>
-      <button type="button" data-mobile-mode="gifts">🎁 <span>Suivi cadeaux</span></button>
-      <button type="button" data-mobile-mode="games">🏆 <span>Jeux</span></button>
-      <button type="button" data-mobile-mode="misc">📌 <span>Divers</span></button>
-    </div>
-  </dialog>
-
-  <dialog class="app-confirm-modal" id="app-confirm-modal" aria-labelledby="app-confirm-title">
-    <div class="app-confirm-content">
-      <span class="modal-icon">⚠️</span>
-      <h2 id="app-confirm-title">Confirmer cette action</h2>
-      <p id="app-confirm-message"></p>
-      <div class="app-confirm-actions"><button type="button" id="app-confirm-cancel">Annuler</button><button type="button" id="app-confirm-accept">Confirmer</button></div>
-    </div>
-  </dialog>
 
   <div class="voice-listening-overlay" id="voice-listening-overlay" aria-live="assertive" aria-hidden="true">
     <div class="voice-listening-pulse" aria-hidden="true"><span>🎤</span></div>
@@ -335,6 +309,10 @@
   </dialog>
   <dialog class="modal global-search-modal" id="global-search-modal"><div class="global-search-content"><button class="modal-close" id="close-global-search" type="button" aria-label="Fermer">×</button><span class="modal-icon">🔎</span><h2>Recherche globale</h2><p>Ardoise, dépenses, réapros, commandes, jeux, cadeaux et services.</p><input class="field" id="global-search-input" type="search" placeholder="Nom, produit, montant, date…" autocomplete="off"><small class="global-search-count" id="global-search-count"></small><div class="global-search-results" id="global-search-results"></div></div></dialog>
   <button class="notification-test" id="notification-test" type="button" title="Tester une notification" aria-label="Tester une notification" hidden>🔔</button>
+  <aside class="app-update-notice" id="app-update-notice" role="status" aria-live="polite" hidden>
+    <span>✨</span><div><b>Nouvelle version disponible</b><small>La mise à jour n’interrompra pas ta commande.</small></div>
+    <button id="install-app-update" type="button">Mettre à jour</button><button id="dismiss-app-update" type="button" aria-label="Plus tard">×</button>
+  </aside>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>

@@ -5,7 +5,6 @@ const CITIZEN_SALES_KEY = 'mojito-inn-citizen-sales-v1';
 const GAME_SORT_KEY = 'mojito-inn-game-sort';
 const SOUND_KEY = 'mojito-inn-remote-sound';
 const ACCESS_KEY = 'mojito-inn-access-granted';
-const APP_MODE_KEY = 'mojito-inn-last-mode';
 const number = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
 const config = window.MOJITO_CONFIG || {};
 const configured = /^https:\/\/.+\.supabase\.co$/.test(config.supabaseUrl || '') && !String(config.supabaseKey).startsWith('COLLE_');
@@ -13,7 +12,7 @@ const db = configured && window.supabase ? window.supabase.createClient(config.s
 let operatorName = localStorage.getItem(NAME_KEY) || '';
 let state = { balance: 0, peak: 0, history: [], updated: Date.now() };
 let cart = [];
-let appMode = localStorage.getItem(APP_MODE_KEY) || 'tab';
+let appMode = 'tab';
 let expenses = [];
 let gifts=[];
 let services={current:null,history:[]};
@@ -50,19 +49,6 @@ const parseAmount = value => Number(value.trim().replace(/\s/g, '').replace(',',
 const isAdminName = name => ['kai','summer'].includes(String(name||'').trim().toLowerCase());
 const escapeHTML = value => String(value).replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 function toast(message) { const el=document.querySelector('#toast'); el.textContent=message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>el.classList.remove('show'),2500); }
-const confirmModal=document.querySelector('#app-confirm-modal'),confirmMessage=document.querySelector('#app-confirm-message');
-let confirmResolver=null;
-function askConfirm(message){confirmMessage.textContent=message;confirmModal.showModal();return new Promise(resolve=>{confirmResolver=resolve})}
-function closeAppConfirm(answer){if(confirmModal.open)confirmModal.close();const resolve=confirmResolver;confirmResolver=null;if(resolve)resolve(answer)}
-document.querySelector('#app-confirm-cancel').addEventListener('click',()=>closeAppConfirm(false));
-document.querySelector('#app-confirm-accept').addEventListener('click',()=>closeAppConfirm(true));
-confirmModal.addEventListener('cancel',event=>{event.preventDefault();closeAppConfirm(false)});
-const confirmedClicks=new WeakSet();
-const destructiveSelector=['#reset-citizen-sales','#reset','#reset-expenses','[data-expense-delete]','[data-restock-remove]','[data-gift-finish]','[data-gift-delete]','#reset-gifts','#close-service','[data-adjust-delete]','#draw-winner','#reset-raffle','[data-delete-game]','[data-delete-score]','#reset-game','#reset-game-winners','#reset-orders','[data-order-cancel]','[data-team-reset]','[data-log-delete]','[data-event-delete]'].join(',');
-document.addEventListener('click',async event=>{const target=event.target.closest(destructiveSelector);if(!target||confirmedClicks.has(target)){if(target)confirmedClicks.delete(target);return}event.preventDefault();event.stopImmediatePropagation();const label=(target.getAttribute('title')||target.textContent||'cette action').trim().replace(/\s+/g,' ');const accepted=await askConfirm(`Confirmer : ${label} ? Cette action peut modifier les données partagées.`);if(accepted){confirmedClicks.add(target);target.click()}},true);
-window.confirm=()=>true;
-document.querySelectorAll('input,select,textarea').forEach(control=>{if(control.type==='hidden'||control.getAttribute('aria-label')||control.getAttribute('aria-labelledby'))return;const explicit=control.id&&document.querySelector(`label[for="${CSS.escape(control.id)}"]`);const wrapping=control.closest('label');if(!explicit&&!wrapping){const label=control.placeholder||control.name||control.id?.replace(/-/g,' ')||'Champ';control.setAttribute('aria-label',label)}});
-document.querySelectorAll('button:not([type])').forEach(button=>button.type='button');
 let alertAudioContext;
 function updateSoundButton(){const button=document.querySelector('#sound-toggle');button.querySelector('span').innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/>${soundEnabled?'':'<path class="sound-slash" d="M4 4l16 16"/>'}</svg>`;button.title=soundEnabled?'Couper les alertes sonores':'Activer les alertes sonores';button.setAttribute('aria-label',button.title);button.classList.toggle('active',soundEnabled)}
 function playRemoteSound(){if(!soundEnabled)return;try{alertAudioContext=alertAudioContext||new(window.AudioContext||window.webkitAudioContext)();const now=alertAudioContext.currentTime,gain=alertAudioContext.createGain();gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.055,now+.015);gain.gain.exponentialRampToValueAtTime(.0001,now+.45);gain.connect(alertAudioContext.destination);[659.25,783.99].forEach((frequency,index)=>{const oscillator=alertAudioContext.createOscillator();oscillator.type='sine';oscillator.frequency.value=frequency;oscillator.connect(gain);oscillator.start(now+index*.07);oscillator.stop(now+.48)})}catch{}}
@@ -245,7 +231,7 @@ async function syncPersonalStats(revenue,items,orders){if(!db||!operatorName)ret
 function addToCart(amount,name,logName=name){ if(appMode==='tab'&&!requireName())return; cart.push({amount,name,logName}); renderCart(); toast(`${name} ajouté · total ${format(cart.reduce((s,x)=>s+x.amount,0))}`); }
 
 function setAppMode(next){
-  appMode=next; localStorage.setItem(APP_MODE_KEY,appMode);
+  appMode=next; cart=[];
   document.body.classList.toggle('order-mode',appMode==='order');
   document.body.classList.toggle('expenses-mode',appMode==='expenses');
   document.body.classList.toggle('raffle-mode',appMode==='raffle');
@@ -253,17 +239,11 @@ function setAppMode(next){
   document.body.classList.toggle('service-mode',appMode==='service');
   document.body.classList.toggle('games-mode',appMode==='games');
   document.body.classList.toggle('misc-mode',appMode==='misc');
-  document.querySelectorAll('[data-app-mode]').forEach(button=>{const active=button.dataset.appMode===appMode;button.classList.toggle('active',active);button.setAttribute('role','tab');button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1});
-  document.querySelector('#open-mobile-more').classList.toggle('active',!['order','tab','service'].includes(appMode));
+  document.querySelectorAll('[data-app-mode]').forEach(button=>button.classList.toggle('active',button.dataset.appMode===appMode));
   document.querySelector('.section-heading small').textContent=appMode==='tab'?'Touchez pour ajouter au panier':'Calcule la commande sans toucher à l’ardoise';
   renderCart(); refresh(); toast(appMode==='tab'?'Mode ardoise partagé':appMode==='order'?'Mode commande simple':appMode==='expenses'?'Suivi des dépenses':appMode==='gifts'?'Suivi des cadeaux':appMode==='service'?'Gestion du service':appMode==='misc'?'Informations diverses':appMode==='raffle'?'Tombola partagée':'Classement des jeux');
 }
 document.querySelectorAll('[data-app-mode]').forEach(button=>button.addEventListener('click',()=>setAppMode(button.dataset.appMode)));
-document.querySelector('.mode-switch').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key))return;const tabs=[...document.querySelectorAll('.mode-switch [data-app-mode]:not([hidden])')].filter(tab=>getComputedStyle(tab).display!=='none'),current=tabs.indexOf(document.activeElement),direction=event.key==='ArrowRight'?1:-1,next=tabs[(current+direction+tabs.length)%tabs.length];if(next){event.preventDefault();next.focus();setAppMode(next.dataset.appMode)}});
-const mobileMoreModal=document.querySelector('#mobile-more-modal');
-document.querySelector('#open-mobile-more').addEventListener('click',()=>mobileMoreModal.showModal());
-document.querySelector('#close-mobile-more').addEventListener('click',()=>mobileMoreModal.close());
-document.querySelectorAll('[data-mobile-mode]').forEach(button=>button.addEventListener('click',()=>{mobileMoreModal.close();setAppMode(button.dataset.mobileMode)}));
 async function copyText(value){try{await navigator.clipboard.writeText(value);toast(`« ${value} » copié ✓`)}catch{const input=document.createElement('textarea');input.value=value;document.body.append(input);input.select();document.execCommand('copy');input.remove();toast(`« ${value} » copié ✓`)}}
 const openingHeadlines=['🌅 LE MOJITO INN EST OUVERT ! 🍹','🍹 AFTER-WORK AU MOJITO INN ! 🌅','✨ LA SOIRÉE COMMENCE AU MOJITO INN ! 🍸','🌴 LE MOJITO INN VOUS ATTEND ! 🍹','🥂 C’EST L’HEURE DE DÉCOMPRESSER ! 🌅','☀️ FIN DE JOURNÉE AU MOJITO INN ! 🍸','🎶 AMBIANCE CHILL AU MOJITO INN ! 🍹','🍍 LE COMPTOIR DU MOJITO INN EST OUVERT ! ✨','🌅 PALETO, ON SE RETROUVE AU MOJITO INN ! 🤙','🍸 LES COCKTAILS SONT PRÊTS ! 🌴','✨ VOTRE AFTER-WORK COMMENCE ICI ! 🥂','🌊 CE SOIR, DIRECTION LE MOJITO INN ! 🍹','🤙 LE MOJITO INN LANCE LA SOIRÉE ! 🌅','🥃 UN VERRE APRÈS LE TRAVAIL ? 🍹','🌴 PLACE À LA DÉTENTE AU MOJITO INN ! ✨','🍹 LE MOJITO INN PASSE EN MODE CHILL ! 🎶','🌅 LE SOLEIL DESCEND, LE BAR S’ANIME ! 🍸','🥂 ON SE RETROUVE AU MOJITO INN ! 🌴'],
 openingStarts=['La journée se termine','Le soleil commence à descendre','Après une longue journée','À l’heure de l’after-work','Ce soir à Paleto','Quand vient la fin de journée','Pour bien commencer la soirée','Le comptoir est prêt','Les glaçons sont frais','La musique est lancée','Les lumières s’allument','L’équipe est en place','Le service démarre','Pour une pause bien méritée','Pour décompresser tranquillement','Entre collègues ou entre amis','À la sortie du travail','Avant de poursuivre la soirée','Pour profiter du coucher de soleil','Paleto ralentit doucement'],
@@ -364,16 +344,6 @@ document.querySelector('#close-global-search').addEventListener('click',()=>glob
 globalSearchInput.addEventListener('input',renderGlobalSearch);
 
 let refreshPromise=null;
-const connectionBanner=document.querySelector('#connection-banner');
-function updateConnectionState(){const online=navigator.onLine;connectionBanner.hidden=online;document.body.classList.toggle('is-offline',!online);if(!online)syncStatus('Hors ligne · consultation uniquement','error');else if(db){syncStatus('Reconnexion…');refresh()}}
-window.addEventListener('online',updateConnectionState);window.addEventListener('offline',updateConnectionState);
-document.querySelector('#retry-connection').addEventListener('click',()=>{updateConnectionState();if(navigator.onLine)refresh()});
-updateConnectionState();
-let deferredInstallPrompt=null;const installButton=document.querySelector('#install-app-button');
-window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;installButton.hidden=false});
-installButton.addEventListener('click',async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();const result=await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;installButton.hidden=true;if(result.outcome==='accepted')toast('Application installée ✓')});
-window.addEventListener('appinstalled',()=>{installButton.hidden=true;toast('Mojito Inn est installé ✓')});
-
 async function refresh() {
   if(refreshPromise)return refreshPromise;
   refreshPromise=refreshData().finally(()=>{refreshPromise=null});
@@ -442,18 +412,17 @@ document.querySelector('#custom-form').addEventListener('submit',e=>{e.preventDe
 document.querySelector('#undo-item').addEventListener('click',()=>{const item=cart.pop();renderCart();if(item)toast(`${item.name} retiré du panier`)});
 document.querySelector('#clear-cart').addEventListener('click',()=>{cart=[];renderCart();toast('Panier vidé')});
 const orderChoiceModal=document.querySelector('#order-choice-modal');
-async function completeSimpleOrder(){const button=document.querySelector('#validate-cart'),label=button.textContent,total=cart.reduce((s,x)=>s+x.amount,0);button.disabled=true;button.dataset.loading='true';button.textContent='Enregistrement…';try{savedOrders.unshift({total,items:cart.slice(),operator:operatorName,date:Date.now()});if(savedOrders.length>200)savedOrders.length=200;saveOrders();await syncPersonalStats(total,cart.length,1);cart=[];renderCart();await refresh();toast(`Commande de ${format(total)} encaissée ✓`)}finally{button.dataset.loading='false';button.textContent=label;renderCart()}}
+async function completeSimpleOrder(){const total=cart.reduce((s,x)=>s+x.amount,0);savedOrders.unshift({total,items:cart.slice(),operator:operatorName,date:Date.now()});if(savedOrders.length>200)savedOrders.length=200;saveOrders();await syncPersonalStats(total,cart.length,1);cart=[];renderCart();await refresh();toast(`Commande de ${format(total)} encaissée ✓`)}
 async function completeTabOrder(){
-  const validateButton=document.querySelector('#validate-cart'),validateLabel=validateButton.textContent;validateButton.disabled=true;validateButton.dataset.loading='true';validateButton.textContent='Enregistrement…';
   const total=cart.reduce((s,x)=>s+x.amount,0);
-  if(!requireName()||!db){if(!db)toast('Branche d’abord la base Supabase');validateButton.dataset.loading='false';validateButton.textContent=validateLabel;renderCart();return}
-  if(total>state.balance){validateButton.dataset.loading='false';validateButton.textContent=validateLabel;renderCart();return toast(`Total ${format(total)} · il reste seulement ${format(state.balance)}`)}
+  if(!requireName()||!db){if(!db)toast('Branche d’abord la base Supabase');return}
+  if(total>state.balance)return toast(`Total ${format(total)} · il reste seulement ${format(state.balance)}`);
   await db.rpc('fermer_service_si_inactif');
   const pending=cart.map(item=>({...item,name:item.logName||item.name})); document.querySelector('#validate-cart').disabled=true;
   const {error}=await db.rpc('appliquer_panier',{p_items:pending,p_operator_name:operatorName});
-  if(error){validateButton.dataset.loading='false';validateButton.textContent=validateLabel;renderCart();return toast(error.message.includes('Solde insuffisant')?'Le solde vient de changer : total insuffisant':'Panier non enregistré')}
+  if(error){renderCart();return toast(error.message.includes('Solde insuffisant')?'Le solde vient de changer : total insuffisant':'Panier non enregistré')}
   savedOrders.unshift({total,items:cart.slice(),operator:operatorName,date:Date.now(),source:'ardoise'});if(savedOrders.length>200)savedOrders.length=200;saveOrders();
-  cart=[];renderCart();await refresh();validateButton.dataset.loading='false';validateButton.textContent=validateLabel;renderCart();toast(`Panier de ${format(total)} validé ✓`);
+  cart=[];renderCart();await refresh();toast(`Panier de ${format(total)} validé ✓`);
 }
 document.querySelector('#validate-cart').addEventListener('click',async()=>{
   if(!cart.length)return;
@@ -559,7 +528,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 window.addEventListener('pageshow',refreshAfterMobileResume);
 window.addEventListener('focus',refreshAfterMobileResume);
 window.addEventListener('online',refreshAfterMobileResume);
-setAppMode(appMode);updateMenuPrices();applyTheme(localStorage.getItem(THEME_KEY)||'sand');updateSoundButton();render(); renderCart();renderExpenses();renderGifts();renderOrderLogs();renderRaffle();renderCitizenSales();renderTeamStats();renderGame();renderPreviousWinners();renderServices();renderDivers(); refresh();setInterval(()=>{if(services.current&&!document.body.classList.contains('pwa-saving'))renderServices()},60000);setInterval(()=>{if(db&&document.visibilityState==='visible'&&!document.body.classList.contains('pwa-saving'))refreshAfterMobileResume()},120000);setInterval(async()=>{if(db){const{data}=await db.rpc('fermer_service_si_inactif');if(data){await refresh();toast('Service fermé automatiquement après 4 h sans vente')}}},300000);openAccessGate();if((!db||sessionStorage.getItem(ACCESS_KEY)==='yes')&&!operatorName)setTimeout(openName,250);
+updateMenuPrices();applyTheme(localStorage.getItem(THEME_KEY)||'sand');updateSoundButton();render(); renderCart();renderExpenses();renderGifts();renderOrderLogs();renderRaffle();renderCitizenSales();renderTeamStats();renderGame();renderPreviousWinners();renderServices();renderDivers(); refresh();setInterval(()=>{if(services.current&&!document.body.classList.contains('pwa-saving'))renderServices()},60000);setInterval(()=>{if(db&&document.visibilityState==='visible'&&!document.body.classList.contains('pwa-saving'))refreshAfterMobileResume()},120000);setInterval(async()=>{if(db){const{data}=await db.rpc('fermer_service_si_inactif');if(data){await refresh();toast('Service fermé automatiquement après 4 h sans vente')}}},300000);openAccessGate();if((!db||sessionStorage.getItem(ACCESS_KEY)==='yes')&&!operatorName)setTimeout(openName,250);
 const PWA_IDLE_DELAY=10000,isInstalledPWA=['standalone','fullscreen','minimal-ui'].some(mode=>window.matchMedia(`(display-mode: ${mode})`).matches)||window.navigator.standalone===true||(navigator.maxTouchPoints>0&&window.innerWidth<=1024),pwaSaver=document.querySelector('#pwa-saver');let screenWakeLock=null,pwaIdleTimer=null,pwaClockTimer=null,pwaAmbientTimer=null,pwaSaverNotificationTimer=null;
 async function requestPWAWakeLock(){if(!isInstalledPWA||!('wakeLock'in navigator)||document.visibilityState!=='visible'||screenWakeLock&&!screenWakeLock.released)return;try{screenWakeLock=await navigator.wakeLock.request('screen');screenWakeLock.addEventListener('release',()=>{screenWakeLock=null})}catch(error){console.debug('Maintien de l’écran refusé',error)}}
 function showPWASaverNotification(message,kind='payment'){if(!pwaSaver?.classList.contains('active'))return;const notice=document.querySelector('#pwa-saver-notification');notice.querySelector('i').textContent=kind==='addition'?'＋':'✓';notice.querySelector('span').textContent=message;notice.className=`pwa-saver-notification show ${kind}`;clearTimeout(pwaSaverNotificationTimer);pwaSaverNotificationTimer=setTimeout(()=>notice.classList.remove('show'),6000)}
@@ -569,4 +538,4 @@ function showPWASaver(){if(!isInstalledPWA||document.visibilityState!=='visible'
 function hidePWASaver(){if(!pwaSaver.classList.contains('active'))return;pwaSaver.classList.remove('active');pwaSaver.setAttribute('aria-hidden','true');document.body.classList.remove('pwa-saving');document.querySelector('#pwa-saver-notification').classList.remove('show');clearTimeout(pwaSaverNotificationTimer);clearInterval(pwaClockTimer);clearInterval(pwaAmbientTimer);refreshAfterMobileResume()}
 function resetPWAIdle(){if(!isInstalledPWA)return;clearTimeout(pwaIdleTimer);pwaIdleTimer=setTimeout(showPWASaver,PWA_IDLE_DELAY)}
 if(isInstalledPWA){document.addEventListener('pointerdown',event=>{if(pwaSaver.contains(event.target))return;hidePWASaver();resetPWAIdle();requestPWAWakeLock()},{passive:true});document.addEventListener('keydown',()=>{hidePWASaver();resetPWAIdle();requestPWAWakeLock()});pwaSaver.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();hidePWASaver();resetPWAIdle();requestPWAWakeLock()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){requestPWAWakeLock();resetPWAIdle()}else{clearTimeout(pwaIdleTimer);hidePWASaver()}});resetPWAIdle()}
-if('serviceWorker'in navigator&&location.protocol!=='file:')window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(error=>console.error('Installation PWA impossible',error)));
+if('serviceWorker'in navigator&&location.protocol!=='file:')window.addEventListener('load',async()=>{try{const registration=await navigator.serviceWorker.register('./sw.js'),notice=document.querySelector('#app-update-notice'),install=document.querySelector('#install-app-update'),dismiss=document.querySelector('#dismiss-app-update');let reloading=false;const showUpdate=worker=>{if(!navigator.serviceWorker.controller)return;notice.hidden=false;install.onclick=()=>{install.disabled=true;install.textContent='Mise à jour…';worker.postMessage('SKIP_WAITING')};dismiss.onclick=()=>{notice.hidden=true}};if(registration.waiting)showUpdate(registration.waiting);registration.addEventListener('updatefound',()=>{const worker=registration.installing;if(!worker)return;worker.addEventListener('statechange',()=>{if(worker.state==='installed'&&navigator.serviceWorker.controller)showUpdate(worker)})});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloading)return;reloading=true;location.reload()});setInterval(()=>registration.update().catch(()=>{}),15*60*1000)}catch(error){console.error('Installation PWA impossible',error)}});
