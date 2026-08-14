@@ -151,7 +151,7 @@
           </div>
           <button class="submit add" type="submit">Enregistrer la dépense</button>
         </form>
-        <details class="restock-quick"><summary>📦 Réapro rapide · choisir les produits</summary><div class="restock-detail"><small>Chaque réapro contient 35 unités à 1 $, soit 35 $ par lot.</small><div class="restock-choices"><label><span>Bouteilles vides</span><input class="field restock-quantity" data-restock-name="Bouteilles vides" type="number" min="0" max="100" value="0"></label><label><span>Fûts de chêne</span><input class="field restock-quantity" data-restock-name="Fûts de chêne" type="number" min="0" max="100" value="0"></label><label><span>Baies de sureau</span><input class="field restock-quantity" data-restock-name="Baies de sureau" type="number" min="0" max="100" value="0"></label><label><span>Botaniques de citron</span><input class="field restock-quantity" data-restock-name="Botaniques de citron" type="number" min="0" max="100" value="0"></label><label><span>Sucre</span><input class="field restock-quantity" data-restock-name="Sucre" type="number" min="0" max="100" value="0"></label></div><button id="add-restock-expense" type="button">Enregistrer · <span id="restock-cost">0</span> $</button></div></details>
+        <details class="restock-quick"><summary>📦 Réapro rapide · 35 $ par clic</summary><div class="restock-detail"><small>Chaque clic enregistre un lot de 35 unités à 1 $, soit une dépense de 35 $.</small><div class="restock-choices"><button type="button" data-restock-add="Bouteilles vides"><span>🍾 Bouteilles vides <small>35 unités × 1 $</small></span><strong>35 $</strong></button><button type="button" data-restock-add="Fûts de chêne"><span>🛢️ Fûts de chêne <small>35 unités × 1 $</small></span><strong>35 $</strong></button><button type="button" data-restock-add="Baies de sureau"><span>🫐 Baies de sureau <small>35 unités × 1 $</small></span><strong>35 $</strong></button><button type="button" data-restock-add="Botaniques de citron"><span>🍋 Botaniques de citron <small>35 unités × 1 $</small></span><strong>35 $</strong></button><button type="button" data-restock-add="Sucre"><span>🧂 Sucre <small>35 unités × 1 $</small></span><strong>35 $</strong></button></div></div></details>
       </section>
       <section class="card restock-week-card"><div class="section-title restock-week-title"><div><span id="restock-week-heading">Réapros de la semaine</span><small>Reset dimanche à 20 h · montants remboursables</small></div><select id="restock-week-selector" aria-label="Choisir une semaine"><option value="current">Cette semaine</option></select></div><div class="restock-week-list" id="restock-week-list"></div></section>
       <section class="card expense-history-card">
@@ -279,6 +279,7 @@
       <button class="submit" type="submit">Enregistrer le nouveau mot de passe</button>
     </form>
   </dialog>
+  <button class="notification-test" id="notification-test" type="button" title="Tester une notification" aria-label="Tester une notification" hidden>🔔</button>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
