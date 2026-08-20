@@ -31,15 +31,21 @@
       </section>
     </header>
 
-    <nav class="mode-switch" aria-label="Mode de caisse">
-      <button class="mode-button" type="button" data-app-mode="order">🧮 Commande simple</button>
-      <button class="mode-button active" type="button" data-app-mode="tab">🧾 Ardoise</button>
-      <button class="mode-button" type="button" data-app-mode="expenses">💸 Dépenses</button>
-      <button class="mode-button" type="button" data-app-mode="gifts">🎁 Suivi cadeaux</button>
-      <button class="mode-button" type="button" data-app-mode="games">🏆 Jeux</button>
-      <button class="mode-button admin-service-tab" type="button" data-app-mode="service">📊 Service</button>
-      <button class="mode-button" type="button" data-app-mode="misc">📌 Divers</button>
-    </nav>
+    <div class="app-navigation">
+      <nav class="mode-switch nav-groups" aria-label="Rubriques principales">
+        <button class="mode-button active" type="button" data-nav-group="sales">🍹 Vente</button>
+        <button class="mode-button" type="button" data-nav-group="management">🗂️ Gestion</button>
+        <button class="mode-button" type="button" data-nav-group="animation">🏆 Animations</button>
+        <button class="mode-button" type="button" data-nav-group="communication">📣 Communication</button>
+      </nav>
+      <nav class="nav-tools" aria-label="Outils de la rubrique">
+        <div class="nav-shortcuts"><small>Accès rapide</small><button class="nav-tool" type="button" data-app-mode="order" data-nav-owner="sales">🧮 Commande</button><button class="nav-tool active" type="button" data-app-mode="tab" data-nav-owner="sales">🧾 Ardoise</button></div>
+        <div class="nav-context-tools" data-nav-tools="sales"><small>Vente</small><button class="nav-tool" type="button" data-app-mode="gifts" data-nav-owner="sales">🎁 Cadeaux</button></div>
+        <div class="nav-context-tools" data-nav-tools="management" hidden><small>Gestion</small><button class="nav-tool" type="button" data-app-mode="expenses" data-nav-owner="management">💸 Dépenses</button><button class="nav-tool admin-service-tab" type="button" data-app-mode="service" data-nav-owner="management">📊 Service</button><button class="nav-tool" type="button" data-misc-direct="room" data-nav-owner="management">🗓️ Salle</button><button class="nav-tool" type="button" data-misc-direct="trucks" data-nav-owner="management">🚚 Camions</button></div>
+        <div class="nav-context-tools" data-nav-tools="animation" hidden><small>Animations</small><button class="nav-tool" type="button" data-app-mode="games" data-nav-owner="animation">🎯 Jeux</button><button class="nav-tool" type="button" data-misc-direct="podium" data-nav-owner="animation">🏆 Podium</button></div>
+        <div class="nav-context-tools" data-nav-tools="communication" hidden><small>Communication</small><button class="nav-tool" type="button" data-misc-direct="cocktails" data-nav-owner="communication">🍹 Cocktails</button><button class="nav-tool" type="button" data-misc-direct="opening" data-nav-owner="communication">📣 Phrases</button><button class="nav-tool" type="button" data-misc-direct="images" data-nav-owner="communication">🖼️ Images</button></div>
+      </nav>
+    </div>
 
     <section class="card balance-card" aria-labelledby="balance-title">
       <div class="balance-top">
