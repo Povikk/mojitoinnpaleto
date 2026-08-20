@@ -8,8 +8,6 @@ const ACCESS_KEY = 'mojito-inn-access-granted';
 const PODIUM_COOLDOWN_KEY = 'mojito-inn-podium-cooldown';
 const number = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
 const config = window.MOJITO_CONFIG || {};
-if('scrollRestoration'in history)history.scrollRestoration='manual';
-window.addEventListener('pageshow',()=>requestAnimationFrame(()=>window.scrollTo(0,0)));
 const configured = /^https:\/\/.+\.supabase\.co$/.test(config.supabaseUrl || '') && !String(config.supabaseKey).startsWith('COLLE_');
 const db = configured && window.supabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseKey) : null;
 let operatorName = localStorage.getItem(NAME_KEY) || '';
