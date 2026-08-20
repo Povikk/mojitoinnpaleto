@@ -456,11 +456,11 @@ async function refreshData() {
   syncStatus('Ardoise partagée · en direct','online'); render();renderExpenses();renderGifts();renderRaffle();renderTeamStats();renderOrderLogs();renderGame();renderPreviousWinners();renderServices();renderDivers();renderImportantImages();renderTruckInventory();renderArdoisePodium();renderLatestPodiumVideo();
 }
 
-async function addTransaction(type, amount, name, debtorName='') {
+async function addTransaction(type, amount, name, debtorName='',includeInPodium=true) {
   if (!requireName()) return;
   if (!db) return toast('Branche d’abord la base Supabase');
   if (type==='payment' && amount>state.balance) return toast(`Solde insuffisant : il reste ${format(state.balance)}`);
-  const { error }=type==='add'?await db.rpc('ajouter_ardoise_nominative',{p_amount:amount,p_debtor_name:debtorName,p_operator_name:operatorName}):await db.rpc('appliquer_operation',{p_operation:type,p_amount:amount,p_item_name:name,p_operator_name:operatorName});
+  const { error }=type==='add'?await db.rpc('ajouter_ardoise_nominative',{p_amount:amount,p_debtor_name:debtorName,p_operator_name:operatorName,p_include_in_podium:includeInPodium}):await db.rpc('appliquer_operation',{p_operation:type,p_amount:amount,p_item_name:name,p_operator_name:operatorName});
   if (error) return toast(error.message.includes('ajouter_ardoise_nominative')||error.message.includes('schema cache')?'Installe le script « podium ardoises » dans Supabase':error.message.includes('Solde insuffisant')?'Le solde vient de changer : montant insuffisant':'Opération non enregistrée');
   await refresh(); toast(type==='add'?`${format(amount)} ajoutés pour ${debtorName} 🌺`:`${name} · − ${format(amount)} ✓`);
 }
@@ -507,10 +507,10 @@ orderChoiceModal.addEventListener('click',event=>{if(event.target===orderChoiceM
 document.querySelector('#confirm-simple-order').addEventListener('click',async()=>{orderChoiceModal.close();await completeSimpleOrder()});
 document.querySelector('#transfer-order-tab').addEventListener('click',async()=>{orderChoiceModal.close();await completeTabOrder()});
 const addModal=document.querySelector('#add-modal');
-document.querySelector('#open-add').addEventListener('click',()=>{ if(!requireName())return;document.querySelector('#ardoise-name-suggestions').innerHTML=(ardoisePodium.names||[]).map(name=>`<option value="${escapeHTML(name)}"></option>`).join('');addModal.showModal(); setTimeout(()=>document.querySelector('#add-amount').focus(),50); });
+document.querySelector('#open-add').addEventListener('click',()=>{ if(!requireName())return;document.querySelector('#ardoise-name-suggestions').innerHTML=(ardoisePodium.names||[]).map(name=>`<option value="${escapeHTML(name)}"></option>`).join('');document.querySelector('#exclude-from-podium').checked=false;addModal.showModal(); setTimeout(()=>document.querySelector('#add-amount').focus(),50); });
 document.querySelector('#close-add').addEventListener('click',()=>addModal.close());
 addModal.addEventListener('click',e=>{if(e.target===addModal)addModal.close()});
-document.querySelector('#add-form').addEventListener('submit',async e=>{e.preventDefault();const input=document.querySelector('#add-amount'),debtorInput=document.querySelector('#add-debtor-name'),amount=parseAmount(input.value),debtorName=debtorInput.value.trim();if(!Number.isFinite(amount)||amount<=0)return toast('Entre un montant supérieur à zéro');if(!debtorName)return toast('Indique le nom de la personne');addModal.close();input.value='';debtorInput.value='';await addTransaction('add',amount,'Ajout à l’ardoise',debtorName)});
+document.querySelector('#add-form').addEventListener('submit',async e=>{e.preventDefault();const input=document.querySelector('#add-amount'),debtorInput=document.querySelector('#add-debtor-name'),excludeInput=document.querySelector('#exclude-from-podium'),amount=parseAmount(input.value),debtorName=debtorInput.value.trim(),includeInPodium=!excludeInput.checked;if(!Number.isFinite(amount)||amount<=0)return toast('Entre un montant supérieur à zéro');if(!debtorName)return toast('Indique le nom de la personne');addModal.close();input.value='';debtorInput.value='';excludeInput.checked=false;await addTransaction('add',amount,'Ajout à l’ardoise',debtorName,includeInPodium)});
 
 const nameModal=document.querySelector('#name-modal');
 function openName(){ document.querySelector('#name-input').value=operatorName; nameModal.showModal(); setTimeout(()=>document.querySelector('#name-input').focus(),50); }
