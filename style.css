@@ -341,3 +341,5 @@ body.theme-contrast .leaderboard-actions select { border-color:#294849;backgroun
 .room-booking-operator{display:inline-flex;align-items:center;margin:2px 0 9px!important;padding:5px 8px;border-radius:999px;background:#e7f2ed;color:#397269!important;font-size:.53rem!important;font-weight:800}.room-booking-operator::before{content:'👤';margin-right:5px}.room-booking-row{align-items:end}.room-booking-row label{display:grid!important;grid-template-rows:auto 44px;gap:4px;min-width:0;margin:0!important}.room-booking-row .field{height:44px;min-height:44px;margin:0!important}body.theme-contrast .room-booking-operator{background:#173536;color:#bfe7e1!important}
 /* Une seule sous-navigation contextuelle doit occuper la barre. */
 .nav-context-tools[hidden]{display:none!important}
+/* La navigation reste dans le flux, puis se colle au bord supérieur après son dépassement. */
+.app-navigation{top:0}@media(max-width:600px){.app-navigation{top:max(0px,env(safe-area-inset-top))}}
