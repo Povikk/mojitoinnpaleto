@@ -343,3 +343,5 @@ body.theme-contrast .leaderboard-actions select { border-color:#294849;backgroun
 .nav-context-tools[hidden]{display:none!important}
 /* La navigation reste dans le flux, puis se colle au bord supérieur après son dépassement. */
 .app-navigation{top:0}@media(max-width:600px){.app-navigation{top:max(0px,env(safe-area-inset-top))}}
+/* Un seul conteneur défile : nécessaire au positionnement sticky fiable. */
+body{overflow-y:visible}
