@@ -1,8 +1,14 @@
-const CACHE_NAME='mojito-inn-pwa-v87';
+const CACHE_NAME='mojito-inn-pwa-v88';
 const APP_SHELL=['./','./index.html','./style.css','./app.js','./config.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./tropical-bar.webp','./podium-template.mp4'];
 
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
+  event.waitUntil(caches.open(CACHE_NAME).then(async cache=>{
+    await Promise.all(APP_SHELL.map(async path=>{
+      const response=await fetch(new Request(path,{cache:'reload'}));
+      if(!response.ok)throw new Error(`Mise en cache impossible : ${path}`);
+      await cache.put(path,response);
+    }));
+  }));
 });
 
 self.addEventListener('message',event=>{if(event.data==='SKIP_WAITING')self.skipWaiting()});
