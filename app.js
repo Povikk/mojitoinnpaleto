@@ -507,6 +507,8 @@ async function addTransaction(type, amount, name, debtorName='',includeInPodium=
   if (type==='payment' && amount>state.balance) return toast(`Solde insuffisant : il reste ${format(state.balance)}`);
   const { error }=type==='add'?await db.rpc('ajouter_ardoise_nominative',{p_amount:amount,p_debtor_name:debtorName,p_operator_name:operatorName,p_include_in_podium:includeInPodium}):await db.rpc('appliquer_operation',{p_operation:type,p_amount:amount,p_item_name:name,p_operator_name:operatorName});
   if (error) return toast(error.message.includes('ajouter_ardoise_nominative')||error.message.includes('schema cache')?'Installe le script « podium ardoises » dans Supabase':error.message.includes('Solde insuffisant')?'Le solde vient de changer : montant insuffisant':'Opération non enregistrée');
+  if(refreshPromise)await refreshPromise;
+  if(type==='add'&&includeInPodium){clearTimeout(podiumSaveTimer);podiumDraftDirty=false;podiumDraftWeek='';podiumOverlayDirty=true}
   await refresh(); toast(type==='add'?`${format(amount)} ajoutés pour ${debtorName} 🌺`:`${name} · − ${format(amount)} ✓`);
 }
 
