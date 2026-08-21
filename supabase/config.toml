@@ -1,0 +1,6 @@
+[functions.storyupload-proxy]
+verify_jwt = false
+
+[functions.podium-template-upload]
+verify_jwt = false
+

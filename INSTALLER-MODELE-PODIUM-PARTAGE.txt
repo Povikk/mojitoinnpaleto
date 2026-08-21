@@ -1,0 +1,40 @@
+INSTALLATION DU MODÈLE VIDÉO PARTAGÉ
+====================================
+
+1. Dans Supabase, ouvre SQL Editor > New query.
+2. Copie tout le contenu de « installation-modele-podium-partage.sql ».
+3. Clique sur Run.
+
+Le script crée automatiquement :
+- le bucket public « podium-templates » ;
+- la table « podium_template_config » ;
+- la lecture publique du modèle ;
+- la mise à jour en direct sur les autres appareils.
+
+4. Dans Supabase, ouvre Edge Functions > Deploy a new function > Via Editor.
+5. Donne EXACTEMENT ce nom à la fonction :
+
+   podium-template-upload
+
+6. Remplace tout le contenu de index.ts par celui du fichier :
+
+   supabase/functions/podium-template-upload/index.ts
+
+7. Déploie la fonction.
+
+Dans les réglages de cette fonction, désactive « Verify JWT » / « Enforce JWT
+verification ». La sécurité de cet envoi est assurée par le mot de passe vérifié
+dans la fonction. Sans ce réglage, l'application peut recevoir une erreur 401.
+
+Les variables SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournies
+automatiquement par Supabase aux Edge Functions. Ne mets surtout jamais
+la clé service_role dans config.js ou sur GitHub.
+
+8. Publie ensuite les nouveaux fichiers du site sur GitHub Pages.
+9. Ouvre l'application avec Kai ou Summer.
+10. Dans Divers > Podium, utilise « Remplacer le modèle partagé ».
+11. Choisis le MP4/WebM, retape le mot de passe puis lance l'envoi.
+
+Le modèle sera remplacé pour toute l'équipe. Si aucun modèle partagé
+n'existe, l'application continuera d'utiliser podium-template.mp4 sur GitHub.
+
