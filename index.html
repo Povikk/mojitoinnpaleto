@@ -278,13 +278,7 @@
   </dialog>
   <dialog class="modal" id="name-modal">
     <form id="name-form" method="dialog">
-      <button class="modal-close" id="close-name" type="button" aria-label="Fermer">×</button>
-      <span class="modal-icon">👋</span>
-      <h2>Quel est ton nom ?</h2>
-      <p>Il restera mémorisé uniquement sur cet appareil et apparaîtra dans les opérations.</p>
-      <label for="name-input">Prénom ou surnom</label>
-      <div class="amount-input name-input"><input id="name-input" type="text" maxlength="30" autocomplete="name" placeholder="Ex. Léa" required></div>
-      <button class="submit" type="submit">Continuer</button>
+      <button class="modal-close" id="close-name" type="button" aria-label="Fermer">×</button><span class="modal-icon">👤</span><h2 id="account-name">Mon compte</h2><p id="account-role">Compte employé connecté</p><label for="name-input">Nouveau mot de passe</label><div class="amount-input name-input"><input id="name-input" type="password" minlength="6" autocomplete="new-password" placeholder="6 caractères minimum"></div><button class="submit" type="submit">Changer mon mot de passe</button><button class="account-logout" id="account-logout" type="button">Se déconnecter</button>
     </form>
   </dialog>
   <dialog class="modal order-choice-modal" id="order-choice-modal">
@@ -308,9 +302,7 @@
   <dialog class="modal room-booking-modal" id="room-booking-modal"><form id="room-booking-form"><button class="modal-close" id="close-room-booking" type="button" aria-label="Fermer">×</button><span class="modal-icon">🗓️</span><h2 id="room-booking-title">Réserver la petite salle</h2><p id="room-booking-slot"></p><p class="room-booking-operator" id="room-booking-operator"></p><input id="room-booking-id" type="hidden"><input id="room-booking-start" type="hidden"><label for="room-booking-name">Réservé par</label><div class="amount-input name-input"><input id="room-booking-name" maxlength="60" autocomplete="off" placeholder="Nom de la personne ou du groupe" required></div><label for="room-booking-phone">Téléphone <small>(optionnel)</small></label><div class="amount-input name-input"><input id="room-booking-phone" maxlength="30" inputmode="tel" autocomplete="off" placeholder="Numéro facultatif"></div><div class="room-booking-row"><label><span>Durée</span><select class="field" id="room-booking-duration"></select></label><label><span>Montant prévu</span><input class="field" id="room-booking-amount" type="number" min="0" step="1" value="0"></label></div><label class="room-paid-option"><input id="room-booking-paid" type="checkbox"><span>Réservation payée</span></label><label for="room-booking-note">Note <small>(optionnel)</small></label><textarea class="field" id="room-booking-note" rows="2" maxlength="200" placeholder="Informations utiles…"></textarea><div class="room-booking-actions"><button class="submit" type="submit">Enregistrer</button><button id="delete-room-booking" type="button" hidden>Supprimer</button></div></form></dialog>
   <dialog class="modal access-modal" id="access-modal">
     <form id="access-form">
-      <span class="modal-icon">🔒</span><h2>Accès au Mojito Inn</h2><p>Entre le mot de passe partagé pour ouvrir l’application.</p>
-      <label for="access-password">Mot de passe</label><div class="amount-input name-input"><input id="access-password" type="password" autocomplete="current-password" required></div>
-      <button class="submit" id="access-submit" type="submit">Ouvrir l’application</button><small class="access-error" id="access-error"></small>
+      <span class="modal-icon">🌴</span><h2>Connexion employé</h2><p>Choisis ton nom RP et entre ton mot de passe personnel.</p><label for="access-username">Nom RP</label><div class="amount-input name-input"><input id="access-username" list="employee-login-list" autocomplete="username" placeholder="Ex. Kai" required><datalist id="employee-login-list"></datalist></div><label for="access-password">Mot de passe personnel</label><div class="amount-input name-input"><input id="access-password" type="password" autocomplete="current-password" required></div><button class="submit" id="access-submit" type="submit">Se connecter</button><small class="access-error" id="access-error"></small>
     </form>
   </dialog>
   <dialog class="modal" id="change-access-modal">
