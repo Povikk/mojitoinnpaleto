@@ -1,4 +1,4 @@
-const CACHE_NAME='mojito-inn-pwa-v104';
+const CACHE_NAME='mojito-inn-pwa-v106';
 const APP_SHELL=['./','./index.html','./style.css','./app.js','./config.js','./webm-muxer.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./tropical-bar.webp','./podium-template.mp4'];
 
 self.addEventListener('install',event=>{
