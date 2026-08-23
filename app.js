@@ -489,10 +489,15 @@ document.querySelector('.employee-admin-card details').addEventListener('toggle'
 document.querySelector('#employee-create-form').addEventListener('submit',async event=>{event.preventDefault();const button=event.submitter;button.disabled=true;try{await employeeAdminRequest('POST',{action:'create',username:document.querySelector('#employee-username').value,displayName:document.querySelector('#employee-display-name').value,password:document.querySelector('#employee-password').value,role:document.querySelector('#employee-is-admin').checked?'admin':'employee'});event.target.reset();await loadEmployeeAccounts();await loadEmployeeLoginList();toast('Compte employé créé ✓')}catch(error){toast(error.message)}finally{button.disabled=false}});
 document.querySelector('#employee-account-list').addEventListener('click',async event=>{const role=event.target.closest('[data-account-role]'),active=event.target.closest('[data-account-active]'),password=event.target.closest('[data-account-password]'),approve=event.target.closest('[data-account-approve]'),reject=event.target.closest('[data-account-reject]');try{if(approve){await employeeAdminRequest('POST',{action:'approve',userId:approve.dataset.accountApprove})}else if(reject){if(!confirm('Refuser et supprimer cette demande de compte ?'))return;await employeeAdminRequest('POST',{action:'reject',userId:reject.dataset.accountReject})}else if(role){await employeeAdminRequest('POST',{action:'role',userId:role.dataset.accountRole,role:role.dataset.nextRole})}else if(active){await employeeAdminRequest('POST',{action:'toggle',userId:active.dataset.accountActive,active:active.dataset.nextActive==='true'})}else if(password){const value=prompt('Nouveau mot de passe provisoire (6 caractères minimum)');if(value===null)return;await employeeAdminRequest('POST',{action:'password',userId:password.dataset.accountPassword,password:value})}else return;await loadEmployeeAccounts();await loadEmployeeLoginList();toast(approve?'Compte accepté ✓':reject?'Demande refusée':'Compte mis à jour ✓')}catch(error){toast(error.message)}});
 
-let refreshPromise=null;
+let refreshPromise=null,refreshQueued=false;
 async function refresh() {
-  if(refreshPromise)return refreshPromise;
-  refreshPromise=refreshData().finally(()=>{refreshPromise=null});
+  if(refreshPromise){refreshQueued=true;return refreshPromise}
+  refreshPromise=(async()=>{
+    do{
+      refreshQueued=false;
+      await refreshData();
+    }while(refreshQueued)
+  })().finally(()=>{refreshPromise=null});
   return refreshPromise;
 }
 async function refreshData() {
