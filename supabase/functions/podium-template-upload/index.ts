@@ -18,16 +18,17 @@ Deno.serve(async request => {
   if(request.method!=='POST')return json({error:'Méthode refusée'},405);
   if(origin&&!allowedOrigins.has(origin)&&!/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))return json({error:'Origine refusée'},403);
   try {
-    const form=await request.formData(),file=form.get('file'),password=String(form.get('password')||''),operator=String(form.get('operator')||'').trim();
+    const form=await request.formData(),file=form.get('file'),authorization=request.headers.get('authorization')||'';
     if(!(file instanceof File))return json({error:'Fichier vidéo manquant'},400);
-    if(!['kai','summer'].includes(operator.toLowerCase()))return json({error:'Action réservée à Kai et Summer'},403);
     if(!['video/mp4','video/webm'].includes(file.type))return json({error:'Choisis une vidéo MP4 ou WebM'},400);
     if(file.size>50*1024*1024)return json({error:'Le modèle dépasse 50 Mo'},413);
     const url=Deno.env.get('SUPABASE_URL'),serviceKey=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     if(!url||!serviceKey)throw new Error('Secrets Supabase indisponibles');
-    const admin=createClient(url,serviceKey,{auth:{persistSession:false}}),{data:valid,error:verifyError}=await admin.rpc('verifier_acces_application',{p_password:password});
-    if(verifyError)throw verifyError;
-    if(!valid)return json({error:'Mot de passe incorrect'},401);
+    const admin=createClient(url,serviceKey,{auth:{persistSession:false}}),userClient=createClient(url,Deno.env.get('SUPABASE_ANON_KEY')!,{global:{headers:{Authorization:authorization}}}),{data:{user},error:userError}=await userClient.auth.getUser();
+    if(userError||!user)return json({error:'Connexion requise'},401);
+    const{data:profile}=await admin.from('employee_profiles').select('display_name,role,active,approval_status').eq('user_id',user.id).maybeSingle();
+    if(!profile?.active||profile.approval_status!=='approved'||profile.role!=='admin')return json({error:'Action réservée aux administrateurs'},403);
+    const operator=profile.display_name;
     const path='current/podium-template',{error:uploadError}=await admin.storage.from('podium-templates').upload(path,file,{contentType:file.type,upsert:true,cacheControl:'60'});
     if(uploadError)throw uploadError;
     const publicUrl=admin.storage.from('podium-templates').getPublicUrl(path).data.publicUrl,version=crypto.randomUUID();
