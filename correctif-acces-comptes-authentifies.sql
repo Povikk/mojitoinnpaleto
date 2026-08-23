@@ -37,7 +37,7 @@ end;
 $$;
 
 grant usage,select on all sequences in schema public to authenticated;
-grant execute on all functions in schema public to authenticated;
+-- Les droits d'exécution sont accordés fonction par fonction par les scripts.
 
 -- Les données d'identité restent protégées par leur politique personnelle.
 revoke all on public.employee_profiles from anon;

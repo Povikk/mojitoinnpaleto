@@ -83,6 +83,7 @@ function render() {
   document.querySelector('#notification-test').hidden=String(operatorName||'').trim().toLowerCase()!=='kai';
   document.querySelector('.admin-service-tab').hidden=false;
   document.querySelector('.admin-control-tab').hidden=!isAdminName(operatorName);
+  document.querySelector('#reset').hidden=!isCurrentAdmin();
   document.querySelector('#balance').textContent = format(state.balance);
   document.querySelector('#updated').textContent = state.history.length ? `Mis à jour à ${new Date(state.updated).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}` : 'Prêt à démarrer';
   document.querySelector('#progress').style.width = `${state.peak ? Math.min(100, state.balance/state.peak*100) : 0}%`;
@@ -693,6 +694,10 @@ if(db){db.channel('mojito-podium-template-live').on('postgres_changes',{event:'*
 if(db){db.channel('mojito-room-bookings-live').on('postgres_changes',{event:'*',schema:'public',table:'room_bookings'},()=>{if(appMode==='misc')loadRoomBookings()}).subscribe()}
 let mobileRefreshTimer=null,lastResumeRefresh=0;
 function refreshAfterMobileResume(){if(!db||document.visibilityState==='hidden')return;const now=Date.now();if(now-lastResumeRefresh<1500)return;lastResumeRefresh=now;clearTimeout(mobileRefreshTimer);mobileRefreshTimer=setTimeout(()=>refresh().catch(error=>console.error('Resynchronisation mobile impossible',error)),120)}
+const controlSourceSelect=document.querySelector('#control-source');
+if(controlSourceSelect&&!controlSourceSelect.querySelector('option[value="addition"]')){controlSourceSelect.querySelector('option[value="all"]').textContent='Toute l’activité';controlSourceSelect.querySelector('option[value="tab"]').textContent='Ventes sur ardoise';controlSourceSelect.add(new Option('Ajouts à l’ardoise','addition'))}
+const renderControlWithFunding=renderControl;
+renderControl=function(){const source=document.querySelector('#control-source')?.value||'all',allLogs=controlLogs;if(source==='all')controlLogs=allLogs.filter(row=>row.source!=='addition');renderControlWithFunding();controlLogs=allLogs;if(source==='addition'&&controlEmployee){document.querySelector('#control-summary').textContent=`${controlEmployee} · ajouts à l’ardoise`;document.querySelector('#control-service-recaps').innerHTML='<div class="control-recap-heading"><b>Financements de l’ardoise</b><small>Conservés sans modifier les ventes encaissées</small></div>'}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshAfterMobileResume()});
 window.addEventListener('pageshow',refreshAfterMobileResume);
 window.addEventListener('focus',refreshAfterMobileResume);
