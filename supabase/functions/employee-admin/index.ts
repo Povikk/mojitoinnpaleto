@@ -5,22 +5,30 @@ const clean=(value:unknown)=>String(value||'').trim();
 Deno.serve(async request=>{
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
  const url=Deno.env.get('SUPABASE_URL')!,anon=Deno.env.get('SUPABASE_ANON_KEY')!,secret=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,authorization=request.headers.get('authorization')||'';
- const userClient=createClient(url,anon,{global:{headers:{Authorization:authorization}}}),admin=createClient(url,secret,{auth:{autoRefreshToken:false,persistSession:false}});
+ const admin=createClient(url,secret,{auth:{autoRefreshToken:false,persistSession:false}}),body=request.method==='POST'?await request.json().catch(()=>({})): {},action=clean(body.action);
+ if(action==='request'){
+  const displayName=clean(body.displayName).replace(/\s+/g,' ').slice(0,30),username=displayName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9._-]/g,''),password=clean(body.password);
+  if(username.length<2||displayName.length<2||password.length<4)return json({error:'Nom RP ou mot de passe invalide'},400);
+  const{data,error}=await admin.auth.admin.createUser({email:`${username}@staff.mojito-inn.fr`,password,email_confirm:true});if(error)return json({error:error.message.toLowerCase().includes('registered')?'Ce nom possède déjà un compte ou une demande':error.message},400);
+  const saved=await admin.from('employee_profiles').upsert({user_id:data.user.id,username,display_name:displayName,role:'employee',active:false,approval_status:'pending'});if(saved.error){await admin.auth.admin.deleteUser(data.user.id);return json({error:saved.error.message},400)}return json({ok:true,status:'pending'});
+ }
+ const userClient=createClient(url,anon,{global:{headers:{Authorization:authorization}}});
  const{data:{user},error:userError}=await userClient.auth.getUser();if(userError||!user)return json({error:'Connexion requise'},401);
  const{data:profile}=await admin.from('employee_profiles').select('role,active').eq('user_id',user.id).maybeSingle();if(!profile?.active||profile.role!=='admin')return json({error:'Action réservée aux administrateurs'},403);
- if(request.method==='GET'){const{data,error}=await admin.from('employee_profiles').select('user_id,username,display_name,role,active,last_seen_at,created_at').order('display_name');return error?json({error:error.message},400):json({accounts:data})}
- const body=await request.json().catch(()=>({})),action=clean(body.action);
+ if(request.method==='GET'){const{data,error}=await admin.from('employee_profiles').select('user_id,username,display_name,role,active,approval_status,last_seen_at,created_at').order('approval_status',{ascending:false}).order('display_name');return error?json({error:error.message},400):json({accounts:data})}
  if(action==='create'){
   const username=clean(body.username).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9._-]/g,''),displayName=clean(body.displayName).slice(0,30),password=clean(body.password),role=body.role==='admin'?'admin':'employee';
-  if(username.length<2||!displayName||password.length<6)return json({error:'Identifiant, nom ou mot de passe invalide'},400);
+  if(username.length<2||!displayName||password.length<4)return json({error:'Identifiant, nom ou mot de passe invalide'},400);
   const{data,error}=await admin.auth.admin.createUser({email:`${username}@staff.mojito-inn.fr`,password,email_confirm:true});if(error)return json({error:error.message},400);
-  const saved=await admin.from('employee_profiles').upsert({user_id:data.user.id,username,display_name:displayName,role,active:true});if(saved.error){await admin.auth.admin.deleteUser(data.user.id);return json({error:saved.error.message},400)}return json({ok:true});
+  const saved=await admin.from('employee_profiles').upsert({user_id:data.user.id,username,display_name:displayName,role,active:true,approval_status:'approved'});if(saved.error){await admin.auth.admin.deleteUser(data.user.id);return json({error:saved.error.message},400)}return json({ok:true});
  }
  const userId=clean(body.userId);if(!userId)return json({error:'Compte manquant'},400);
+ if(action==='approve'){const update=await admin.from('employee_profiles').update({active:true,approval_status:'approved'}).eq('user_id',userId).eq('approval_status','pending');return update.error?json({error:update.error.message},400):json({ok:true})}
+ if(action==='reject'){const target=await admin.from('employee_profiles').select('approval_status').eq('user_id',userId).maybeSingle();if(target.data?.approval_status!=='pending')return json({error:'Cette demande n’est plus en attente'},400);const removed=await admin.auth.admin.deleteUser(userId);return removed.error?json({error:removed.error.message},400):json({ok:true})}
  if(userId===user.id&&((action==='toggle'&&!body.active)||(action==='role'&&body.role!=='admin')))return json({error:'Tu ne peux pas retirer ton propre accès administrateur'},400);
  if(action==='toggle'){const update=await admin.from('employee_profiles').update({active:Boolean(body.active)}).eq('user_id',userId);return update.error?json({error:update.error.message},400):json({ok:true})}
  if(action==='role'){const update=await admin.from('employee_profiles').update({role:body.role==='admin'?'admin':'employee'}).eq('user_id',userId);return update.error?json({error:update.error.message},400):json({ok:true})}
- if(action==='password'){const password=clean(body.password);if(password.length<6)return json({error:'6 caractères minimum'},400);const update=await admin.auth.admin.updateUserById(userId,{password});return update.error?json({error:update.error.message},400):json({ok:true})}
+ if(action==='password'){const password=clean(body.password);if(password.length<4)return json({error:'4 caractères minimum'},400);const update=await admin.auth.admin.updateUserById(userId,{password});return update.error?json({error:update.error.message},400):json({ok:true})}
  return json({error:'Action inconnue'},400);
 });
 
