@@ -1,4 +1,4 @@
-const CACHE_NAME='mojito-inn-pwa-v118';
+const CACHE_NAME='mojito-inn-pwa-v119';
 const APP_SHELL=['./','./index.html','./style.css','./reservation-view.css','./app.js','./config.js','./webm-muxer.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./tropical-bar.webp','./podium-template.mp4'];
 
 self.addEventListener('install',event=>{
@@ -33,4 +33,3 @@ self.addEventListener('fetch',event=>{
     return cached||network;
   }));
 });
-
