@@ -377,7 +377,7 @@ async function generatePodiumWorker(event){
   try{
     podiumVideo.pause();syncPodiumDraftFromInputs();await document.fonts?.load('40px "Cabin Sketch"');preparePodiumOverlay();if(!podiumLoopFramesReady)await capturePodiumLoopFrames();
     button.textContent='Démarrage du moteur en arrière-plan…';overlayBitmap=await createImageBitmap(podiumOverlayCanvas);if(podiumLoopFramesReady)startBitmap=await createImageBitmap(podiumLoopStartCanvas);
-    const source=podiumVideo.currentSrc||podiumVideo.src,width=podiumCanvas.width,height=podiumCanvas.height,signature=`${navigator.userAgent}|${width}x${height}|${source}|${Number(podiumVideo.duration||0).toFixed(2)}`,cached=(()=>{try{const value=JSON.parse(localStorage.getItem('mojito-podium-worker-codec-v1')||'null');return value?.signature===signature&&Date.now()-value.date<30*86400000?value.encoder:null}catch{return null}})();
+    const source=podiumVideo.currentSrc||podiumVideo.src,width=podiumCanvas.width,height=podiumCanvas.height,signature=`${navigator.userAgent}|${width}x${height}|${source}|${Number(podiumVideo.duration||0).toFixed(2)}|firefox-realtime-v1`,cached=(()=>{try{const value=JSON.parse(localStorage.getItem('mojito-podium-worker-codec-v2')||'null');return value?.signature===signature&&Date.now()-value.date<30*86400000?value.encoder:null}catch{return null}})();
     worker=new Worker('podium-render-worker.js');
     const result=await new Promise((resolve,reject)=>{
       const abort=()=>{try{worker.postMessage({type:'cancel'})}catch{}worker.terminate();reject(controller.signal.reason||new DOMException('Génération annulée','AbortError'))};
@@ -393,15 +393,15 @@ async function generatePodiumWorker(event){
           return;
         }
         if(data.type==='encoder'){
-          localStorage.setItem('mojito-podium-worker-codec-v1',JSON.stringify({signature,encoder:data.cacheKey,date:Date.now(),results:data.results}));
-          if(podiumDiagnosticRun){podiumDiagnosticRun.engine='WebCodecs Worker + OffscreenCanvas';podiumDiagnosticRun.codec=`WebM ${data.codec}`;podiumDiagnosticRun.codecChoice=`${data.choice}${data.results?.length?` · ${data.results.map(item=>`${item.name} ${item.ms} ms`).join(' / ')}`:''}`;podiumDiagnosticRun.hardwareAcceleration=data.acceleration||'non précisée';podiumDiagnosticRun.duration=data.duration;podiumDiagnosticRun.totalFrames=data.totalFrames;podiumDiagnosticRun.demuxMs=data.demuxMs;podiumDiagnosticRun.demuxCache='Worker';podiumDiagnosticRun.renderSurface='OffscreenCanvas'}
+          localStorage.setItem('mojito-podium-worker-codec-v2',JSON.stringify({signature,encoder:data.cacheKey,date:Date.now(),results:data.results}));
+          if(podiumDiagnosticRun){podiumDiagnosticRun.engine='WebCodecs Worker + OffscreenCanvas';podiumDiagnosticRun.codec=`WebM ${data.codec}`;podiumDiagnosticRun.codecChoice=`${data.choice} · ${data.latencyMode==='realtime'?'temps réel':'qualité'}${data.results?.length?` · ${data.results.map(item=>`${item.name} ${item.ms} ms`).join(' / ')}`:''}`;podiumDiagnosticRun.hardwareAcceleration=data.acceleration||'non précisée';podiumDiagnosticRun.duration=data.duration;podiumDiagnosticRun.totalFrames=data.totalFrames;podiumDiagnosticRun.demuxMs=data.demuxMs;podiumDiagnosticRun.demuxCache='Worker';podiumDiagnosticRun.renderSurface='OffscreenCanvas'}
           return;
         }
         if(data.type==='error'){controller.signal.removeEventListener('abort',abort);const error=new Error(data.message||'Le Worker vidéo a échoué');error.name=data.name||'Error';reject(error);return}
         if(data.type==='complete'){controller.signal.removeEventListener('abort',abort);resolve(data)}
       };
       const transfer=[overlayBitmap];if(startBitmap)transfer.push(startBitmap);
-      worker.postMessage({type:'render',source,width,height,threads:navigator.hardwareConcurrency||4,cachedEncoder:cached,overlay:overlayBitmap,startFrame:startBitmap,settings:{overlayEnd:PODIUM_OVERLAY_END,overlayFade:PODIUM_OVERLAY_FADE,loopFade:PODIUM_LOOP_FADE}},transfer);
+      worker.postMessage({type:'render',source,width,height,threads:navigator.hardwareConcurrency||4,isFirefox:podiumIsFirefox,cachedEncoder:cached,overlay:overlayBitmap,startFrame:startBitmap,settings:{overlayEnd:PODIUM_OVERLAY_END,overlayFade:PODIUM_OVERLAY_FADE,loopFade:PODIUM_LOOP_FADE}},transfer);
       overlayBitmap=null;startBitmap=null;
     });
     worker.terminate();worker=null;if(podiumDiagnosticRun){podiumDiagnosticRun.engine='WebCodecs Worker + OffscreenCanvas';podiumDiagnosticRun.codec=`WebM ${result.codec}`;podiumDiagnosticRun.hardwareAcceleration=result.acceleration||'non précisée';podiumDiagnosticRun.duration=result.duration;podiumDiagnosticRun.totalFrames=result.totalFrames;podiumDiagnosticRun.renderedFrames=result.renderedFrames;podiumDiagnosticRun.demuxMs=result.demuxMs;podiumDiagnosticRun.demuxCache='Worker';Object.assign(podiumDiagnosticRun,{encoderWaitMs:result.metrics?.encoderWaitMs||0,encoderWaits:result.metrics?.encoderWaits||0,maxEncoderQueue:result.metrics?.maxEncoderQueue||0,decoderWaitMs:result.metrics?.decoderWaitMs||0,decoderWaits:result.metrics?.decoderWaits||0,maxDecoderQueue:result.metrics?.maxDecoderQueue||0});podiumDiagnosticRun.steps.push({label:`Attente décodeur · ${podiumDiagnosticRun.decoderWaits} fois · queue max ${podiumDiagnosticRun.maxDecoderQueue}`,ms:podiumDiagnosticRun.decoderWaitMs})}
