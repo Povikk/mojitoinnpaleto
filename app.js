@@ -9,6 +9,7 @@ const SOUND_KEY = 'mojito-inn-remote-sound';
 const ACCESS_KEY = 'mojito-inn-access-granted';
 const PODIUM_COOLDOWN_KEY = 'mojito-inn-podium-cooldown';
 const number = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
+function createLocalId(){try{if(window.crypto&&typeof window.crypto.randomUUID==='function')return window.crypto.randomUUID();if(window.crypto&&typeof window.crypto.getRandomValues==='function'){const bytes=new Uint8Array(16);window.crypto.getRandomValues(bytes);bytes[6]=bytes[6]&15|64;bytes[8]=bytes[8]&63|128;const hex=[...bytes].map(value=>value.toString(16).padStart(2,'0')).join('');return`${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`}}catch{}return`local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`}
 const config = window.MOJITO_CONFIG || {};
 const configured = /^https:\/\/.+\.supabase\.co$/.test(config.supabaseUrl || '') && !String(config.supabaseKey).startsWith('COLLE_');
 const db = configured && window.supabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseKey) : null;
@@ -32,8 +33,7 @@ let jetskiSaveTimer=0;
 let jetskiSyncChain=Promise.resolve();
 let jetskiSyncReady=false;
 let jetskiRemoteUpdatedAt='';
-const jetskiClientId=sessionStorage.getItem('mojito-jetski-client-id')||crypto.randomUUID();
-sessionStorage.setItem('mojito-jetski-client-id',jetskiClientId);
+let jetskiClientId='';try{jetskiClientId=sessionStorage.getItem('mojito-jetski-client-id')||createLocalId();sessionStorage.setItem('mojito-jetski-client-id',jetskiClientId)}catch{jetskiClientId=createLocalId()}
 let weeklyPieSellers=[];
 let eventCocktails=[];
 const fixedImportantMedia=[{id:null,title:'Image d’ouverture',url:'https://upload.storylife.fr/i/01KZXVZN3N70V85FB6RY335ET5.png',fixed:true},{id:null,title:'Menu du Mojito Inn',url:'https://upload.storylife.fr/i/01KXGNHHSG51Y6DN61Y9K5RBJF.png',fixed:true},{id:null,title:'Playlist IG · Volume 1',url:'https://www.youtube.com/watch?v=C1iJF8CDu5w',fixed:true},{id:null,title:'Playlist IG · Volume 2',url:'https://www.youtube.com/watch?v=k-kbT8ccukw',fixed:true},{id:null,title:'Playlist IG · Volume 3',url:'https://www.youtube.com/watch?v=DUSZkPKsiXU',fixed:true},{id:null,title:'Playlist IG · Volume 4',url:'https://www.youtube.com/watch?v=da6e3OnbJHI',fixed:true}];
@@ -217,20 +217,20 @@ function renderGame(){
 }
 
 const JETSKI_COLORS=['#ef4444','#f5c542','#2796e8'];
-function jetskiPlayer(name='',index=0,id=''){return{id:id||crypto.randomUUID(),name:String(name||'').slice(0,40),color:JETSKI_COLORS[index]||JETSKI_COLORS[0],finish:null,index}}
+function jetskiPlayer(name='',index=0,id=''){return{id:id||createLocalId(),name:String(name||'').slice(0,40),color:JETSKI_COLORS[index]||JETSKI_COLORS[0],finish:null,index}}
 function defaultJetskiRace(heat=1){return{version:2,heat,status:'idle',startedAt:0,elapsedBefore:0,racers:[0,1,2].map(index=>jetskiPlayer('',index)),waiting:[],eliminated:[],history:[],podium:null,revision:'',clientId:''}}
 function normalizeJetskiRace(saved){
   const base=defaultJetskiRace(Math.max(1,Number(saved?.heat)||1));
   if(!saved||!Array.isArray(saved.racers))return base;
   const racers=[0,1,2].map(index=>{const racer=saved.racers[index]||{},finish=racer.finish;return{...jetskiPlayer(racer.name,index,racer.id),color:/^#[0-9a-f]{6}$/i.test(racer.color||'')?racer.color:JETSKI_COLORS[index],finish:finish===null||finish===undefined||!Number.isFinite(Number(finish))?null:Number(finish),index}});
-  const waiting=(Array.isArray(saved.waiting)?saved.waiting:[]).map(item=>({id:item.id||crypto.randomUUID(),name:String(item.name||'').slice(0,40)})).filter(item=>item.name);
+  const waiting=(Array.isArray(saved.waiting)?saved.waiting:[]).map(item=>({id:item.id||createLocalId(),name:String(item.name||'').slice(0,40)})).filter(item=>item.name);
   const oldHistory=Array.isArray(saved.history)?saved.history:loadJetskiHistory();
   return{...base,...saved,version:2,racers,waiting,eliminated:Array.isArray(saved.eliminated)?saved.eliminated:[],history:oldHistory.slice(0,60),podium:Array.isArray(saved.podium)?saved.podium:null};
 }
 function loadJetskiRace(){try{return normalizeJetskiRace(JSON.parse(localStorage.getItem(JETSKI_RACE_KEY)||'null'))}catch{return defaultJetskiRace()}}
 function loadJetskiHistory(){try{const saved=JSON.parse(localStorage.getItem(JETSKI_HISTORY_KEY)||'[]');return Array.isArray(saved)?saved.slice(0,60):[]}catch{return[]}}
 function saveJetskiRace(){jetskiRace.history=jetskiHistory;localStorage.setItem(JETSKI_RACE_KEY,JSON.stringify(jetskiRace));localStorage.setItem(JETSKI_HISTORY_KEY,JSON.stringify(jetskiHistory))}
-function markJetskiChanged(){jetskiRace.revision=crypto.randomUUID();jetskiRace.clientId=jetskiClientId;saveJetskiRace()}
+function markJetskiChanged(){jetskiRace.revision=createLocalId();jetskiRace.clientId=jetskiClientId;saveJetskiRace()}
 function queueJetskiSync(){markJetskiChanged();clearTimeout(jetskiSaveTimer);jetskiSaveTimer=setTimeout(()=>syncJetskiRace(true),450)}
 function syncJetskiRace(quiet=false){
   clearTimeout(jetskiSaveTimer);saveJetskiRace();
@@ -282,7 +282,7 @@ function renderJetskiRace(){
 function addJetskiParticipant(name){
   name=String(name||'').trim();if(!name)return;
   const all=[...jetskiRace.racers,...jetskiRace.waiting,...jetskiRace.eliminated];if(all.some(item=>String(item.name||'').localeCompare(name,'fr',{sensitivity:'base'})===0))return toast('Ce participant est déjà inscrit');
-  const empty=jetskiRace.racers.findIndex(item=>!item.name);if(empty>=0&&jetskiRace.heat===1&&jetskiRace.status==='idle')jetskiRace.racers[empty]={...jetskiPlayer(name,empty)};else jetskiRace.waiting.push({id:crypto.randomUUID(),name});
+  const empty=jetskiRace.racers.findIndex(item=>!item.name);if(empty>=0&&jetskiRace.heat===1&&jetskiRace.status==='idle')jetskiRace.racers[empty]={...jetskiPlayer(name,empty)};else jetskiRace.waiting.push({id:createLocalId(),name});
   markJetskiChanged();renderJetskiRace();syncJetskiRace(true);
 }
 function toggleJetskiRace(){if(['finished','complete'].includes(jetskiRace.status))return;if(jetskiRace.status!=='running'&&jetskiRace.racers.some(racer=>!racer.name.trim()))return toast('Il faut trois participants pour lancer la manche');if(jetskiRace.status==='running'){jetskiRace.elapsedBefore=jetskiElapsed();jetskiRace.startedAt=0;jetskiRace.status='stopped'}else{jetskiRace.startedAt=Date.now();jetskiRace.status='running'}markJetskiChanged();renderJetskiRace();syncJetskiRace(true)}
