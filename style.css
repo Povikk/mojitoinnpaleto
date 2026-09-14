@@ -377,4 +377,5 @@ html,body,button,a,input,select,textarea,label,[role="button"]{touch-action:mani
 #day-stats-modal #day-seller-recap .week-seller strong{color:#075f58!important;-webkit-text-fill-color:#075f58!important;font-size:.72rem!important;font-weight:950!important;text-shadow:none!important}
 body.theme-contrast #day-stats-modal #day-seller-recap .week-seller strong{color:#fff!important;-webkit-text-fill-color:#fff!important;text-shadow:0 0 8px rgba(127,242,223,.16)!important}
 body.theme-contrast #day-stats-modal #day-seller-recap .week-seller small{color:#c8dfdb!important}
+.jetski-next-preview{position:relative;z-index:1;margin-top:10px;padding:10px;border:1px dashed rgba(102,224,218,.38);border-radius:12px;background:rgba(17,126,128,.13)}.jetski-next-preview>span{display:block;color:#66ddd7;font-size:.46rem;font-weight:950;letter-spacing:.12em}.jetski-next-preview>div{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.jetski-next-preview b{padding:5px 9px;border-radius:99px;background:rgba(104,224,216,.14);color:#eafffd;font-size:.56rem}.jetski-next-preview p{margin:6px 0 0;color:#9dbfbd;font-size:.49rem;line-height:1.35}
 
