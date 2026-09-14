@@ -5,6 +5,7 @@ const CITIZEN_SALES_KEY = 'mojito-inn-citizen-sales-v1';
 const GAME_SORT_KEY = 'mojito-inn-game-sort';
 const JETSKI_RACE_KEY = 'mojito-inn-jetski-race-v1';
 const JETSKI_HISTORY_KEY = 'mojito-inn-jetski-history-v1';
+const JETSKI_COLORS=['#ef4444','#f5c542','#2796e8'];
 const SOUND_KEY = 'mojito-inn-remote-sound';
 const ACCESS_KEY = 'mojito-inn-access-granted';
 const PODIUM_COOLDOWN_KEY = 'mojito-inn-podium-cooldown';
@@ -216,7 +217,6 @@ function renderGame(){
   document.querySelector('#game-log-count').textContent=`${game.logs.length} attribution${game.logs.length>1?'s':''}`;document.querySelector('#game-log').innerHTML=game.logs.length?game.logs.slice(0,50).map(log=>`<li><span class="history-icon ${log.delta<0?'add':''}">${log.delta>0?'+':'−'}</span><span class="history-info"><b>${escapeHTML(log.player)}</b><small>${escapeHTML(log.operator)} · ${new Date(log.date).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount ${log.delta<0?'add':''}">${log.delta>0?'+':''}${log.delta}</span></li>`).join(''):'<li class="empty">Aucun point attribué</li>'
 }
 
-const JETSKI_COLORS=['#ef4444','#f5c542','#2796e8'];
 function jetskiPlayer(name='',index=0,id=''){return{id:id||createLocalId(),name:String(name||'').slice(0,40),color:JETSKI_COLORS[index]||JETSKI_COLORS[0],finish:null,index}}
 function defaultJetskiRace(heat=1){return{version:2,heat,status:'idle',startedAt:0,elapsedBefore:0,racers:[0,1,2].map(index=>jetskiPlayer('',index)),waiting:[],eliminated:[],history:[],podium:null,revision:'',clientId:''}}
 function normalizeJetskiRace(saved){
