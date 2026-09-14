@@ -3,6 +3,8 @@ const ORDERS_KEY = 'mojito-inn-simple-orders-v1';
 const THEME_KEY = 'mojito-inn-theme';
 const CITIZEN_SALES_KEY = 'mojito-inn-citizen-sales-v1';
 const GAME_SORT_KEY = 'mojito-inn-game-sort';
+const JETSKI_RACE_KEY = 'mojito-inn-jetski-race-v1';
+const JETSKI_HISTORY_KEY = 'mojito-inn-jetski-history-v1';
 const SOUND_KEY = 'mojito-inn-remote-sound';
 const ACCESS_KEY = 'mojito-inn-access-granted';
 const PODIUM_COOLDOWN_KEY = 'mojito-inn-podium-cooldown';
@@ -23,6 +25,15 @@ let weeklyStats=[];
 let selectedWeek='current';
 let selectedRestockWeek='current';
 let selectedStatsDay=null;
+let jetskiRace=loadJetskiRace();
+let jetskiHistory=jetskiRace.history||loadJetskiHistory();
+let jetskiTimerFrame=0;
+let jetskiSaveTimer=0;
+let jetskiSyncChain=Promise.resolve();
+let jetskiSyncReady=false;
+let jetskiRemoteUpdatedAt='';
+const jetskiClientId=sessionStorage.getItem('mojito-jetski-client-id')||crypto.randomUUID();
+sessionStorage.setItem('mojito-jetski-client-id',jetskiClientId);
 let weeklyPieSellers=[];
 let eventCocktails=[];
 const fixedImportantMedia=[{id:null,title:'Image d’ouverture',url:'https://upload.storylife.fr/i/01KZXVZN3N70V85FB6RY335ET5.png',fixed:true},{id:null,title:'Menu du Mojito Inn',url:'https://upload.storylife.fr/i/01KXGNHHSG51Y6DN61Y9K5RBJF.png',fixed:true},{id:null,title:'Playlist IG · Volume 1',url:'https://www.youtube.com/watch?v=C1iJF8CDu5w',fixed:true},{id:null,title:'Playlist IG · Volume 2',url:'https://www.youtube.com/watch?v=k-kbT8ccukw',fixed:true},{id:null,title:'Playlist IG · Volume 3',url:'https://www.youtube.com/watch?v=DUSZkPKsiXU',fixed:true},{id:null,title:'Playlist IG · Volume 4',url:'https://www.youtube.com/watch?v=da6e3OnbJHI',fixed:true}];
@@ -204,6 +215,87 @@ function renderGame(){
   document.querySelector('#leaderboard').innerHTML=shown.length?shown.map((player,index)=>`<li><span class="rank">${index+1}</span><span class="leader-info"><b>${escapeHTML(player.name)}</b></span><span class="score-controls"><button data-score-id="${player.id}" data-delta="-1" type="button">−1</button><strong>${player.points}</strong><button data-score-id="${player.id}" data-delta="1" type="button">+1</button><button class="plus-two" data-score-id="${player.id}" data-delta="2" type="button">+2</button><button class="delete-player" data-delete-score="${player.id}" type="button">×</button></span></li>`).join(''):'<li class="empty">Ajoute un nom pour commencer 🎵</li>';
   document.querySelector('#game-log-count').textContent=`${game.logs.length} attribution${game.logs.length>1?'s':''}`;document.querySelector('#game-log').innerHTML=game.logs.length?game.logs.slice(0,50).map(log=>`<li><span class="history-icon ${log.delta<0?'add':''}">${log.delta>0?'+':'−'}</span><span class="history-info"><b>${escapeHTML(log.player)}</b><small>${escapeHTML(log.operator)} · ${new Date(log.date).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</small></span><span class="history-amount ${log.delta<0?'add':''}">${log.delta>0?'+':''}${log.delta}</span></li>`).join(''):'<li class="empty">Aucun point attribué</li>'
 }
+
+const JETSKI_COLORS=['#ef4444','#f5c542','#2796e8'];
+function jetskiPlayer(name='',index=0,id=''){return{id:id||crypto.randomUUID(),name:String(name||'').slice(0,40),color:JETSKI_COLORS[index]||JETSKI_COLORS[0],finish:null,index}}
+function defaultJetskiRace(heat=1){return{version:2,heat,status:'idle',startedAt:0,elapsedBefore:0,racers:[0,1,2].map(index=>jetskiPlayer('',index)),waiting:[],eliminated:[],history:[],podium:null,revision:'',clientId:''}}
+function normalizeJetskiRace(saved){
+  const base=defaultJetskiRace(Math.max(1,Number(saved?.heat)||1));
+  if(!saved||!Array.isArray(saved.racers))return base;
+  const racers=[0,1,2].map(index=>{const racer=saved.racers[index]||{},finish=racer.finish;return{...jetskiPlayer(racer.name,index,racer.id),color:/^#[0-9a-f]{6}$/i.test(racer.color||'')?racer.color:JETSKI_COLORS[index],finish:finish===null||finish===undefined||!Number.isFinite(Number(finish))?null:Number(finish),index}});
+  const waiting=(Array.isArray(saved.waiting)?saved.waiting:[]).map(item=>({id:item.id||crypto.randomUUID(),name:String(item.name||'').slice(0,40)})).filter(item=>item.name);
+  const oldHistory=Array.isArray(saved.history)?saved.history:loadJetskiHistory();
+  return{...base,...saved,version:2,racers,waiting,eliminated:Array.isArray(saved.eliminated)?saved.eliminated:[],history:oldHistory.slice(0,60),podium:Array.isArray(saved.podium)?saved.podium:null};
+}
+function loadJetskiRace(){try{return normalizeJetskiRace(JSON.parse(localStorage.getItem(JETSKI_RACE_KEY)||'null'))}catch{return defaultJetskiRace()}}
+function loadJetskiHistory(){try{const saved=JSON.parse(localStorage.getItem(JETSKI_HISTORY_KEY)||'[]');return Array.isArray(saved)?saved.slice(0,60):[]}catch{return[]}}
+function saveJetskiRace(){jetskiRace.history=jetskiHistory;localStorage.setItem(JETSKI_RACE_KEY,JSON.stringify(jetskiRace));localStorage.setItem(JETSKI_HISTORY_KEY,JSON.stringify(jetskiHistory))}
+function markJetskiChanged(){jetskiRace.revision=crypto.randomUUID();jetskiRace.clientId=jetskiClientId;saveJetskiRace()}
+function queueJetskiSync(){markJetskiChanged();clearTimeout(jetskiSaveTimer);jetskiSaveTimer=setTimeout(()=>syncJetskiRace(true),450)}
+function syncJetskiRace(quiet=false){
+  clearTimeout(jetskiSaveTimer);saveJetskiRace();
+  if(!db||!operatorName)return Promise.resolve();
+  const snapshot=JSON.parse(JSON.stringify(jetskiRace));
+  jetskiSyncChain=jetskiSyncChain.then(()=>writeJetskiSnapshot(snapshot,quiet)).catch(error=>console.error('Synchronisation jet-ski',error));
+  return jetskiSyncChain;
+}
+async function writeJetskiSnapshot(snapshot,quiet=false){
+  const{data,error}=await db.from('jetski_tournament_state').upsert({id:1,state:snapshot,updated_by:operatorName},{onConflict:'id'}).select('state,updated_at,updated_by').single();
+  if(error){jetskiSyncReady=false;renderJetskiSyncStatus();if(!quiet)toast(error.message.includes('schema cache')||error.code==='42P01'?'Installe le fichier « installation-course-jetski.sql » dans Supabase':error.message);return}
+  jetskiSyncReady=true;jetskiRemoteUpdatedAt=data.updated_at||'';renderJetskiSyncStatus();
+}
+function applySharedJetskiRow(row){
+  if(!row?.state)return;
+  jetskiSyncReady=true;jetskiRemoteUpdatedAt=row.updated_at||jetskiRemoteUpdatedAt;
+  if(row.state.clientId===jetskiClientId)return renderJetskiSyncStatus();
+  jetskiRace=normalizeJetskiRace(row.state);jetskiHistory=jetskiRace.history||[];saveJetskiRace();renderJetskiRace();
+}
+function renderJetskiSyncStatus(){const status=document.querySelector('#jetski-live-status');if(!status)return;status.classList.toggle('online',jetskiSyncReady);status.classList.toggle('offline',!jetskiSyncReady);status.querySelector('span').textContent=jetskiSyncReady?`Synchronisé en direct${jetskiRemoteUpdatedAt?` · ${new Date(jetskiRemoteUpdatedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`:''}`:'Mode local · installation Supabase requise'}
+function jetskiElapsed(){return jetskiRace.status==='running'?jetskiRace.elapsedBefore+Math.max(0,Date.now()-jetskiRace.startedAt):jetskiRace.elapsedBefore}
+function formatJetskiTime(value){const ms=Math.max(0,Math.round(Number(value)||0)),minutes=Math.floor(ms/60000),seconds=Math.floor(ms%60000/1000),milliseconds=ms%1000;return`${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}.${String(milliseconds).padStart(3,'0')}`}
+function jetskiRanked(){return jetskiRace.racers.filter(racer=>racer.name&&racer.finish!==null).sort((a,b)=>a.finish-b.finish)}
+function jetskiRanks(){return new Map(jetskiRanked().map((racer,index)=>[racer.id,index+1]))}
+function updateJetskiClock(){const output=document.querySelector('#jetski-timer');if(output)output.textContent=formatJetskiTime(jetskiElapsed());if(jetskiRace.status==='running')jetskiTimerFrame=requestAnimationFrame(updateJetskiClock)}
+function startJetskiTicker(){cancelAnimationFrame(jetskiTimerFrame);if(jetskiRace.status==='running')jetskiTimerFrame=requestAnimationFrame(updateJetskiClock)}
+function jetskiParticipantCount(){return jetskiRace.racers.filter(item=>item.name).length+jetskiRace.waiting.length+jetskiRace.eliminated.length}
+function renderJetskiRace(){
+  const card=document.querySelector('#jetski-race-card');if(!card)return;
+  const ranks=jetskiRanks(),finished=jetskiRace.racers.filter(racer=>racer.finish!==null).length,complete=jetskiRace.status==='complete';
+  const statusText={idle:'Prêt au départ',running:`Course en cours · ${finished}/3 arrivées`,stopped:`Chrono arrêté · ${finished}/3 arrivées`,finished:'🏁 Manche terminée',complete:'🏆 Tournoi terminé'};
+  card.classList.toggle('running',jetskiRace.status==='running');card.classList.toggle('complete',complete);
+  document.querySelector('#jetski-heat-number').textContent=complete?'Podium final':`Manche ${jetskiRace.heat}`;
+  document.querySelector('#jetski-timer').textContent=formatJetskiTime(jetskiElapsed());
+  document.querySelector('#jetski-race-status').textContent=statusText[jetskiRace.status]||statusText.idle;
+  document.querySelector('#jetski-player-count').textContent=`${jetskiParticipantCount()} inscrit${jetskiParticipantCount()>1?'s':''}`;
+  document.querySelector('#jetski-player-name').disabled=complete;document.querySelector('#jetski-player-form button').disabled=complete;
+  document.querySelector('#jetski-waiting').innerHTML=jetskiRace.waiting.length?`<small>À venir</small>${jetskiRace.waiting.map((player,index)=>`<span>${escapeHTML(player.name)}<button type="button" data-jetski-remove-waiting="${index}" aria-label="Retirer ${escapeHTML(player.name)}">×</button></span>`).join('')}`:'<small>Aucun participant en attente</small>';
+  const start=document.querySelector('#jetski-start');start.disabled=['finished','complete'].includes(jetskiRace.status);start.textContent=jetskiRace.status==='running'?'⏸ Arrêter le chrono':jetskiRace.status==='stopped'?'▶ Reprendre la course':'▶ Lancer la course';
+  document.querySelector('#jetski-racers').innerHTML=jetskiRace.racers.map((racer,index)=>{const rank=ranks.get(racer.id),label=racer.name.trim()||`Pilote ${index+1}`,locked=jetskiRace.status==='running'||complete;return`<article class="jetski-racer"><div class="jetski-racer-fields"><input class="jetski-racer-name" data-jetski-name="${index}" maxlength="40" value="${escapeHTML(racer.name)}" placeholder="Pilote ${index+1}" aria-label="Nom du pilote ${index+1}" ${locked?'disabled':''}><input class="jetski-racer-color" data-jetski-color="${index}" type="color" value="${escapeHTML(racer.color)}" aria-label="Couleur de ${escapeHTML(label)}" ${locked?'disabled':''}></div><button class="jetski-finish${racer.finish!==null?' finished':''}" data-jetski-finish="${index}" type="button" style="--racer-color:${escapeHTML(racer.color)}" ${complete?'disabled':''}><span><b>${racer.finish!==null?`${['🥇','🥈','🥉'][rank-1]} ${escapeHTML(label)}`:'ARRIVÉE'}</b><small>${racer.finish!==null?formatJetskiTime(racer.finish):jetskiRace.status==='running'?`Toucher pour ${escapeHTML(label)}`:escapeHTML(label)}</small></span></button><span class="jetski-rank">${racer.finish!==null?`${rank}${rank===1?'er':'e'} · toucher pour corriger`:'En attente'}</span></article>`}).join('');
+  const finalCandidate=jetskiRace.status==='finished'&&!jetskiRace.waiting.length,ranked=jetskiRanked(),last=ranked[2];
+  document.querySelector('#jetski-race-help').textContent=jetskiRace.status==='running'?'Le chrono continue après chaque arrivée et s’arrête lorsque les trois pilotes ont terminé.':finalCandidate?'Dernière manche : valide pour afficher le podium final.':jetskiRace.status==='finished'?`${last?.name||'Le troisième'} est éliminé · les deux premiers restent pour la manche suivante.`:complete?'Le classement final est synchronisé avec toute l’équipe.':'Ajoute au moins trois participants, choisis leurs couleurs, puis lance la course.';
+  const next=document.querySelector('#jetski-next');next.disabled=jetskiRace.status!=='finished';next.textContent=finalCandidate?'🏆 Valider le podium final':last?`✓ Éliminer ${last.name} et préparer la manche suivante`:'✓ Préparer la manche suivante';
+  const podium=document.querySelector('#jetski-podium');podium.hidden=!jetskiRace.podium;podium.innerHTML=jetskiRace.podium?`<h3>🏆 Podium final</h3><ol>${jetskiRace.podium.map((player,index)=>`<li><em>${['🥇','🥈','🥉'][index]}</em><span>${escapeHTML(player.name)}</span><strong>${formatJetskiTime(player.finish)}</strong></li>`).join('')}</ol>`:'';
+  document.querySelector('#jetski-history-count').textContent=jetskiHistory.length;
+  document.querySelector('#jetski-history-list').innerHTML=jetskiHistory.length?jetskiHistory.map(item=>`<article class="jetski-history-item"><div><b>Manche ${Number(item.heat)||'—'}</b><small>${new Date(item.date).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</small></div><ol>${(item.results||[]).map((result,index)=>`<li><i style="--result-color:${escapeHTML(result.color)}"></i><span>${index+1}. ${escapeHTML(result.name)}</span><strong>${formatJetskiTime(result.finish)}</strong></li>`).join('')}</ol>${item.eliminated?`<small class="jetski-eliminated">Éliminé : ${escapeHTML(item.eliminated)}</small>`:''}</article>`).join(''):'<div class="team-empty">Aucune manche enregistrée</div>';
+  document.querySelector('#jetski-clear-history').hidden=!jetskiParticipantCount()&&!jetskiHistory.length;renderJetskiSyncStatus();startJetskiTicker();
+}
+function addJetskiParticipant(name){
+  name=String(name||'').trim();if(!name)return;
+  const all=[...jetskiRace.racers,...jetskiRace.waiting,...jetskiRace.eliminated];if(all.some(item=>String(item.name||'').localeCompare(name,'fr',{sensitivity:'base'})===0))return toast('Ce participant est déjà inscrit');
+  const empty=jetskiRace.racers.findIndex(item=>!item.name);if(empty>=0&&jetskiRace.heat===1&&jetskiRace.status==='idle')jetskiRace.racers[empty]={...jetskiPlayer(name,empty)};else jetskiRace.waiting.push({id:crypto.randomUUID(),name});
+  markJetskiChanged();renderJetskiRace();syncJetskiRace(true);
+}
+function toggleJetskiRace(){if(['finished','complete'].includes(jetskiRace.status))return;if(jetskiRace.status!=='running'&&jetskiRace.racers.some(racer=>!racer.name.trim()))return toast('Il faut trois participants pour lancer la manche');if(jetskiRace.status==='running'){jetskiRace.elapsedBefore=jetskiElapsed();jetskiRace.startedAt=0;jetskiRace.status='stopped'}else{jetskiRace.startedAt=Date.now();jetskiRace.status='running'}markJetskiChanged();renderJetskiRace();syncJetskiRace(true)}
+function resetJetskiRace(){const hasProgress=jetskiRace.elapsedBefore>0||jetskiRace.status==='running'||jetskiRace.racers.some(racer=>racer.finish!==null);if(hasProgress&&!confirm('Remettre cette manche à zéro ? Les temps actuels seront perdus.'))return;jetskiRace.status='idle';jetskiRace.startedAt=0;jetskiRace.elapsedBefore=0;jetskiRace.racers.forEach(racer=>racer.finish=null);markJetskiChanged();renderJetskiRace();syncJetskiRace(true);toast('Manche remise à zéro')}
+function finishJetskiRacer(index){const racer=jetskiRace.racers[index];if(!racer?.name)return toast('Ajoute le nom de ce pilote');if(racer.finish!==null){if(!confirm(`Effacer le temps de ${racer.name} ?`))return;racer.finish=null;if(jetskiRace.status==='finished')jetskiRace.status='stopped';markJetskiChanged();renderJetskiRace();syncJetskiRace(true);return toast('Temps retiré · reprends le chrono pour corriger')}if(jetskiRace.status!=='running')return toast('Lance d’abord le chronomètre');racer.finish=jetskiElapsed();if(jetskiRace.racers.every(item=>item.finish!==null)){jetskiRace.elapsedBefore=Math.max(...jetskiRace.racers.map(item=>item.finish));jetskiRace.startedAt=0;jetskiRace.status='finished'}markJetskiChanged();renderJetskiRace();syncJetskiRace(true);toast(jetskiRace.status==='finished'?'🏁 Les trois pilotes sont arrivés':`${racer.name} · ${formatJetskiTime(racer.finish)} ✓`)}
+function nextJetskiHeat(){
+  if(jetskiRace.status!=='finished')return;const results=jetskiRanked();if(results.length!==3)return;
+  const finalRound=!jetskiRace.waiting.length,last=results[2];jetskiHistory.unshift({heat:jetskiRace.heat,date:Date.now(),results:results.map(item=>({...item})),eliminated:finalRound?'':last.name});
+  if(finalRound){jetskiRace.podium=results.map(item=>({...item}));jetskiRace.status='complete';jetskiRace.history=jetskiHistory;markJetskiChanged();renderJetskiRace();syncJetskiRace(true);return toast('🏆 Podium final enregistré')}
+  jetskiRace.eliminated.push({id:last.id,name:last.name,heat:jetskiRace.heat,finish:last.finish});
+  const newcomer=jetskiRace.waiting.shift(),survivors=results.slice(0,2);jetskiRace.heat+=1;jetskiRace.status='idle';jetskiRace.startedAt=0;jetskiRace.elapsedBefore=0;jetskiRace.racers=[...survivors,newcomer].map((player,index)=>({...jetskiPlayer(player.name,index,player.id),color:JETSKI_COLORS[index]}));jetskiRace.history=jetskiHistory;markJetskiChanged();renderJetskiRace();syncJetskiRace(true);toast(`${last.name} éliminé · ${newcomer.name} entre en course`);
+}
+function resetJetskiTournament(){if(!confirm('Réinitialiser tout le tournoi partagé ? Participants, manches et podium seront effacés pour tout le monde.'))return;jetskiRace=defaultJetskiRace();jetskiHistory=[];markJetskiChanged();renderJetskiRace();syncJetskiRace();toast('Nouveau tournoi prêt')}
 
 function renderPreviousWinners(){
   document.querySelector('#reset-game-winners').hidden=!isAdminName(operatorName);
@@ -624,7 +716,7 @@ async function refreshData() {
   if(appMode==='control'&&!isAdminName(operatorName)){setAppMode('order','sales',true);return}
   const wants=(...modes)=>modes.includes(appMode),skip=()=>Promise.resolve({data:[],error:null,skipped:true});
   const roomRange=getRoomWeekRange();
-  const [balanceResult, logsResult, expensesResult,raffleSettingsResult,raffleEntriesResult,teamStatsResult,gameSettingsResult,gameScoresResult,gameLogsResult,gameWinnersResult,giftsResult,servicesResult,salesEventsResult,weeklyStatsResult,eventCocktailsResult,importantImagesResult,truckInventoryResult,podiumResult,podiumVideoResult,roomBookingsResult] = await Promise.all([
+  const [balanceResult, logsResult, expensesResult,raffleSettingsResult,raffleEntriesResult,teamStatsResult,gameSettingsResult,gameScoresResult,gameLogsResult,gameWinnersResult,giftsResult,servicesResult,salesEventsResult,weeklyStatsResult,eventCocktailsResult,importantImagesResult,truckInventoryResult,podiumResult,podiumVideoResult,roomBookingsResult,jetskiStateResult] = await Promise.all([
     db.from('ardoise_state').select('balance,peak,updated_at').eq('id',1).single(),
     db.from('ardoise_logs').select('id,operation,amount,quantity,item_name,operator_name,created_at').order('created_at',{ascending:false}).limit(50),
     wants('expenses','service')?db.from('depenses').select('id,label,category,amount,operator_name,created_at').order('created_at',{ascending:false}).limit(400):skip(),
@@ -644,7 +736,8 @@ async function refreshData() {
     wants('misc')?db.from('truck_inventory').select('truck_number,position,contents,updated_by,updated_at').order('position',{ascending:true}):skip(),
     db.rpc('obtenir_podium_ardoises'),
     db.from('podium_videos').select('url,week_start,created_by,created_at').order('created_at',{ascending:false}).limit(1).maybeSingle(),
-    wants('misc')?db.from('room_bookings').select('id,start_at,end_at,customer_name,phone,paid,amount,note,operator_name,created_at,booking_type,formula,persons,jetski,sailboat,toro').gte('start_at',roomRange.start.toISOString()).lt('start_at',roomRange.end.toISOString()).order('start_at',{ascending:true}):skip()
+    wants('misc')?db.from('room_bookings').select('id,start_at,end_at,customer_name,phone,paid,amount,note,operator_name,created_at,booking_type,formula,persons,jetski,sailboat,toro').gte('start_at',roomRange.start.toISOString()).lt('start_at',roomRange.end.toISOString()).order('start_at',{ascending:true}):skip(),
+    wants('games')?db.from('jetski_tournament_state').select('state,updated_at,updated_by').eq('id',1).maybeSingle():skip()
   ]);
   if (balanceResult.error || logsResult.error) { syncStatus('Connexion impossible', 'error'); toast('Vérifie la configuration Supabase'); return; }
   const row=balanceResult.data;
@@ -654,6 +747,7 @@ async function refreshData() {
   if(!raffleSettingsResult.skipped&&!raffleSettingsResult.error&&!raffleEntriesResult.error){raffle={price:Number(raffleSettingsResult.data.ticket_price),max:Number(raffleSettingsResult.data.max_tickets),winner:raffleSettingsResult.data.last_winner,entries:raffleEntriesResult.data.map(x=>({name:x.name,tickets:Number(x.tickets),operator:x.operator_name}))}}
   teamStats=teamStatsResult.error?[]:teamStatsResult.data.map(x=>({name:x.operator_name,revenue:Number(x.revenue),items:Number(x.items),orders:Number(x.orders)}));
   if(!gameSettingsResult.skipped&&!gameSettingsResult.error&&!gameScoresResult.error&&!gameLogsResult.error){game={title:gameSettingsResult.data.title,type:gameSettingsResult.data.game_type,scores:gameScoresResult.data.map(x=>({id:x.id,name:x.name,points:Number(x.points)})),logs:gameLogsResult.data.map(x=>({player:x.player_name,delta:Number(x.delta),operator:x.operator_name,date:new Date(x.created_at).getTime()})),winners:gameWinnersResult.error?[]:gameWinnersResult.data.map(x=>({id:x.id,title:x.game_title,first:{name:x.winner_name,points:Number(x.points)},second:{name:x.second_name,points:Number(x.second_points||0)},third:{name:x.third_name,points:Number(x.third_points||0)},standings:Array.isArray(x.standings)?x.standings.map(player=>({name:player.name,points:Number(player.points)})):[],date:new Date(x.created_at).getTime()})),winnersError:Boolean(gameWinnersResult.error)}}
+  if(!jetskiStateResult.skipped){jetskiSyncReady=!jetskiStateResult.error;if(!jetskiStateResult.error&&jetskiStateResult.data)applySharedJetskiRow(jetskiStateResult.data)}
   services=servicesResult.error?{current:null,history:[]}:{current:servicesResult.data.filter(x=>x.status==='open').map(x=>({id:x.id,name:x.name,isEvent:x.is_event,eventLabel:x.event_label,openedAt:x.opened_at,openedBy:x.opened_by}))[0]||null,history:servicesResult.data.filter(x=>x.status==='closed').map(x=>({id:x.id,name:x.name,isEvent:x.is_event,eventLabel:x.event_label,openedAt:x.opened_at,closedAt:x.closed_at,closedBy:x.closed_by,snapshot:x.snapshot}))};
   if(!salesEventsResult.skipped)salesEvents=salesEventsResult.error?[]:salesEventsResult.data.map(x=>({id:x.id,serviceId:x.service_id,name:x.operator_name,revenue:Number(x.revenue),items:Number(x.items),orders:Number(x.orders),source:x.source,note:x.note,date:new Date(x.created_at).getTime()}));
   if(!weeklyStatsResult.skipped)weeklyStats=weeklyStatsResult.error?[]:(weeklyStatsResult.data||[]).map(x=>({weekStart:x.week_start,day:Number(x.day),name:x.operator_name,revenue:Number(x.revenue),items:Number(x.items),orders:Number(x.orders)}));
@@ -787,6 +881,15 @@ document.querySelector('#week-chart').addEventListener('keydown',event=>{const c
 document.querySelector('#close-day-stats').addEventListener('click',()=>document.querySelector('#day-stats-modal').close());
 document.querySelector('#day-adjust-form').addEventListener('submit',async event=>{event.preventDefault();if(!db||!isAdminName(operatorName))return;const target=document.querySelector('#day-adjust-person').value.trim(),operation=document.querySelector('#day-adjust-operation').value,revenue=parseAmount(document.querySelector('#day-adjust-revenue').value)||0,items=Number(document.querySelector('#day-adjust-items').value)||0,orders=Number(document.querySelector('#day-adjust-orders').value)||0,note=document.querySelector('#day-adjust-note').value.trim(),effectiveAt=document.querySelector('#day-adjust-date').value;if(!target||revenue+items+orders<=0||!Number.isInteger(items)||!Number.isInteger(orders))return toast('Indique le vendeur et une valeur à corriger');const{error}=await db.rpc('admin_ajuster_statistiques_jour',{p_requester_name:operatorName,p_target_name:target,p_operation:operation,p_revenue:revenue,p_items:items,p_orders:orders,p_note:note||null,p_effective_at:effectiveAt});if(error)return toast(`Correction impossible : ${error.message}`);event.target.reset();document.querySelector('#day-stats-modal').close();await refresh();toast('Journée corrigée ✓')});
 document.querySelector('#raffle-tickets').addEventListener('input',updateRaffleCost);
+document.querySelector('#jetski-start').addEventListener('click',toggleJetskiRace);
+document.querySelector('#jetski-reset').addEventListener('click',resetJetskiRace);
+document.querySelector('#jetski-next').addEventListener('click',nextJetskiHeat);
+document.querySelector('#jetski-player-form').addEventListener('submit',event=>{event.preventDefault();const input=document.querySelector('#jetski-player-name'),name=input.value.trim();if(!name)return;addJetskiParticipant(name);input.value='';input.focus()});
+document.querySelector('#jetski-waiting').addEventListener('click',event=>{const button=event.target.closest('[data-jetski-remove-waiting]');if(!button||jetskiRace.status==='running')return;const player=jetskiRace.waiting[Number(button.dataset.jetskiRemoveWaiting)];if(!player||!confirm(`Retirer ${player.name} du tournoi ?`))return;jetskiRace.waiting.splice(Number(button.dataset.jetskiRemoveWaiting),1);markJetskiChanged();renderJetskiRace();syncJetskiRace(true)});
+document.querySelector('#jetski-racers').addEventListener('click',event=>{const button=event.target.closest('[data-jetski-finish]');if(button)finishJetskiRacer(Number(button.dataset.jetskiFinish))});
+document.querySelector('#jetski-racers').addEventListener('input',event=>{const name=event.target.closest('[data-jetski-name]'),color=event.target.closest('[data-jetski-color]');if(name)jetskiRace.racers[Number(name.dataset.jetskiName)].name=name.value;if(color)jetskiRace.racers[Number(color.dataset.jetskiColor)].color=color.value;queueJetskiSync();if(color)renderJetskiRace()});
+document.querySelector('#jetski-racers').addEventListener('change',event=>{if(event.target.matches('[data-jetski-name],[data-jetski-color]'))syncJetskiRace(true)});
+document.querySelector('#jetski-clear-history').addEventListener('click',resetJetskiTournament);
 document.querySelector('#raffle-settings-form').addEventListener('submit',async e=>{e.preventDefault();if(!db)return toast('Branche d’abord la base Supabase');const price=parseAmount(document.querySelector('#ticket-price').value),max=Number(document.querySelector('#ticket-max').value);if(!Number.isFinite(price)||price<=0||!Number.isInteger(max)||max<1)return toast('Réglages de tombola invalides');const{error}=await db.rpc('configurer_tombola',{p_ticket_price:price,p_max_tickets:max});if(error)return toast(error.message);await refresh();toast('Réglages de la tombola enregistrés')});
 document.querySelector('#raffle-entry-form').addEventListener('submit',async e=>{e.preventDefault();if(!requireName()||!db)return;const name=document.querySelector('#raffle-name').value.trim(),tickets=Number(document.querySelector('#raffle-tickets').value);if(!name||!Number.isInteger(tickets)||tickets<1)return toast('Participant ou tickets invalides');const{error}=await db.rpc('ajouter_tickets_tombola',{p_name:name,p_tickets:tickets,p_operator_name:operatorName});if(error)return toast(error.message);e.target.reset();document.querySelector('#raffle-tickets').value=1;await refresh();toast(`${tickets} ticket${tickets>1?'s':''} ajouté${tickets>1?'s':''} pour ${name}`)});
 document.querySelector('#draw-winner').addEventListener('click',async()=>{if(!db)return;if(!confirm('Lancer le tirage au sort maintenant ?'))return;const{data,error}=await db.rpc('tirer_gagnant_tombola');if(error)return toast(error.message);await refresh();toast(`🏆 ${data} gagne la tombola !`)});
@@ -809,6 +912,7 @@ if(db){db.channel('mojito-divers-live').on('postgres_changes',{event:'*',schema:
 if(db){db.channel('mojito-podium-video-live').on('postgres_changes',{event:'INSERT',schema:'public',table:'podium_videos'},payload=>{if(String(payload.new.created_by).toLowerCase()!==operatorName.toLowerCase())showTeamAlert(`${payload.new.created_by} a publié une nouvelle vidéo du podium`,'payment','misc');refresh()}).on('postgres_changes',{event:'*',schema:'public',table:'podium_manual_adjustments'},refresh).subscribe()}
 if(db){db.channel('mojito-podium-template-live').on('postgres_changes',{event:'*',schema:'public',table:'podium_template_config'},()=>loadSharedPodiumTemplate()).subscribe();loadSharedPodiumTemplate()}
 if(db){db.channel('mojito-room-bookings-live').on('postgres_changes',{event:'*',schema:'public',table:'room_bookings'},()=>{if(appMode==='misc')loadRoomBookings()}).subscribe()}
+if(db){db.channel('mojito-jetski-live').on('postgres_changes',{event:'*',schema:'public',table:'jetski_tournament_state'},payload=>applySharedJetskiRow(payload.new)).subscribe()}
 let mobileRefreshTimer=null,lastResumeRefresh=0;
 function refreshAfterMobileResume(){if(!db||document.visibilityState==='hidden')return;const now=Date.now();if(now-lastResumeRefresh<1500)return;lastResumeRefresh=now;clearTimeout(mobileRefreshTimer);mobileRefreshTimer=setTimeout(()=>refresh().catch(error=>console.error('Resynchronisation mobile impossible',error)),120)}
 const controlSourceSelect=document.querySelector('#control-source');
@@ -821,7 +925,7 @@ window.addEventListener('focus',refreshAfterMobileResume);
 window.addEventListener('online',refreshAfterMobileResume);
 const voiceAliasSettings=document.querySelector('.voice-alias-settings');if(voiceAliasSettings){voiceAliasSettings.querySelector('summary').textContent='⚙ Synonymes vocaux partagés';voiceAliasSettings.querySelector('p').textContent='Ajoute une façon de prononcer un produit. Elle améliorera la reconnaissance pour toute l’équipe.'}
 initializeSharedVoiceAliases();initializeSharedVoiceNumbers();if(db){db.channel('mojito-voice-aliases-live').on('postgres_changes',{event:'*',schema:'public',table:'voice_aliases'},()=>loadSharedVoiceAliases(false)).on('postgres_changes',{event:'*',schema:'public',table:'voice_number_aliases'},()=>loadSharedVoiceNumbers(false)).subscribe()}
-const savedAppMode=localStorage.getItem(NAV_MODE_KEY),candidateMode=['order','tab','expenses','gifts','games','service','misc','control'].includes(savedAppMode)?savedAppMode:'tab',restoredMode=candidateMode==='control'?'order':candidateMode,savedNavGroup=localStorage.getItem(NAV_GROUP_KEY);setAppMode(restoredMode,savedNavGroup||inferNavGroup(restoredMode),true);updateMenuPrices();applyTheme(localStorage.getItem(THEME_KEY)||'sand');updateSoundButton();render();renderCart();renderExpenses();renderGifts();renderOrderLogs();renderRaffle();renderCitizenSales();renderTeamStats();renderGame();renderPreviousWinners();renderServices();renderDivers();openAccessGate().then(connected=>{if(operatorName)refresh()});setInterval(()=>{if(services.current&&!document.body.classList.contains('pwa-saving'))renderServices()},60000);setInterval(()=>{if(db&&document.visibilityState==='visible'&&!document.body.classList.contains('pwa-saving')&&operatorName)refreshAfterMobileResume()},120000);setInterval(async()=>{if(db&&operatorName){const{data}=await db.rpc('fermer_service_si_inactif');if(data){await refresh();toast('Service fermé automatiquement après 4 h sans vente')}}},300000);
+const savedAppMode=localStorage.getItem(NAV_MODE_KEY),candidateMode=['order','tab','expenses','gifts','games','service','misc','control'].includes(savedAppMode)?savedAppMode:'tab',restoredMode=candidateMode==='control'?'order':candidateMode,savedNavGroup=localStorage.getItem(NAV_GROUP_KEY);setAppMode(restoredMode,savedNavGroup||inferNavGroup(restoredMode),true);updateMenuPrices();applyTheme(localStorage.getItem(THEME_KEY)||'sand');updateSoundButton();render();renderCart();renderExpenses();renderGifts();renderOrderLogs();renderRaffle();renderCitizenSales();renderTeamStats();renderGame();renderJetskiRace();renderPreviousWinners();renderServices();renderDivers();openAccessGate().then(connected=>{if(operatorName)refresh()});setInterval(()=>{if(services.current&&!document.body.classList.contains('pwa-saving'))renderServices()},60000);setInterval(()=>{if(db&&document.visibilityState==='visible'&&!document.body.classList.contains('pwa-saving')&&operatorName)refreshAfterMobileResume()},120000);setInterval(async()=>{if(db&&operatorName){const{data}=await db.rpc('fermer_service_si_inactif');if(data){await refresh();toast('Service fermé automatiquement après 4 h sans vente')}}},300000);
 const PWA_IDLE_DELAY=10000,PWA_SAVER_ENABLED_KEY='mojito-pwa-saver-enabled',isInstalledPWA=['standalone','fullscreen','minimal-ui'].some(mode=>window.matchMedia(`(display-mode: ${mode})`).matches)||window.navigator.standalone===true||(navigator.maxTouchPoints>0&&window.innerWidth<=1024),pwaSaver=document.querySelector('#pwa-saver'),pwaFullscreenButton=document.querySelector('#pwa-saver-fullscreen');let screenWakeLock=null,pwaIdleTimer=null,pwaClockTimer=null,pwaAmbientTimer=null,pwaSaverNotificationTimer=null,pwaSaverOwnsFullscreen=false,pwaSaverEnabled=localStorage.getItem(PWA_SAVER_ENABLED_KEY)!=='false',pwaSaverToggle=null;
 async function requestPWAWakeLock(){if(!isInstalledPWA||!('wakeLock'in navigator)||document.visibilityState!=='visible'||screenWakeLock&&!screenWakeLock.released)return;try{screenWakeLock=await navigator.wakeLock.request('screen');screenWakeLock.addEventListener('release',()=>{screenWakeLock=null})}catch(error){console.debug('Maintien de l’écran refusé',error)}}
 function showPWASaverNotification(message,kind='payment'){if(!pwaSaver?.classList.contains('active'))return;const notice=document.querySelector('#pwa-saver-notification');notice.querySelector('i').textContent=kind==='addition'?'＋':'✓';notice.querySelector('span').textContent=message;notice.className=`pwa-saver-notification show ${kind}`;clearTimeout(pwaSaverNotificationTimer);pwaSaverNotificationTimer=setTimeout(()=>notice.classList.remove('show'),6000)}
