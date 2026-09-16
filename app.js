@@ -303,7 +303,7 @@ function renderJetskiRace(){
   const podium=document.querySelector('#jetski-podium');podium.hidden=!jetskiRace.podium;podium.innerHTML=jetskiRace.podium?`<h3>🏆 Podium final</h3><ol>${jetskiRace.podium.map((player,index)=>`<li><em>${['🥇','🥈','🥉'][index]}</em><span>${escapeHTML(player.name)}</span><strong>${formatJetskiTime(player.finish)}</strong></li>`).join('')}</ol>`:'';
   document.querySelector('#jetski-history-count').textContent=jetskiHistory.length;
   document.querySelector('#jetski-history-list').innerHTML=jetskiHistory.length?jetskiHistory.map(item=>`<article class="jetski-history-item"><div><b>Manche ${Number(item.heat)||'—'}</b><small>${new Date(item.date).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</small></div><ol>${(item.results||[]).map((result,index)=>`<li><i style="--result-color:${escapeHTML(result.color)}"></i><span>${index+1}. ${escapeHTML(result.name)}</span><strong>${formatJetskiTime(result.finish)}</strong></li>`).join('')}</ol>${item.eliminated?`<small class="jetski-eliminated">Éliminé : ${escapeHTML(item.eliminated)}</small>`:''}</article>`).join(''):'<div class="team-empty">Aucune manche enregistrée</div>';
-  document.querySelector('#jetski-clear-history').hidden=!jetskiParticipantCount()&&!jetskiHistory.length;renderJetskiSyncStatus();startJetskiTicker();
+  renderJetskiSyncStatus();startJetskiTicker();
 }
 function addJetskiParticipant(name){
   name=String(name||'').trim();if(!name)return;
@@ -321,7 +321,7 @@ function nextJetskiHeat(){
   const completedLast=completed.find(item=>item.id===last.id);jetskiRace.eliminated.push({...completedLast,heat:jetskiRace.heat});
   const survivorIds=new Set(results.slice(0,2).map(item=>item.id)),active=sortJetskiCandidates([...completed.filter(item=>survivorIds.has(item.id)),...jetskiRace.waiting]),nextRacers=active.slice(0,3),waiting=active.slice(3);jetskiRace.heat+=1;jetskiRace.status='idle';jetskiRace.startedAt=0;jetskiRace.elapsedBefore=0;jetskiRace.isFinal=active.length===3;jetskiRace.racers=nextRacers.map((player,index)=>({...jetskiPlayer(player.name,index,player.id,player),color:JETSKI_COLORS[index]}));jetskiRace.waiting=waiting.map(player=>({...player,color:'',finish:null,index:-1}));jetskiRace.history=jetskiHistory;markJetskiChanged();renderJetskiRace();syncJetskiRace(true);toast(`${last.name} éliminé · prochaine manche équilibrée`);
 }
-function resetJetskiTournament(){if(!confirm('Réinitialiser tout le tournoi partagé ? Participants, manches et podium seront effacés pour tout le monde.'))return;jetskiRace=defaultJetskiRace();jetskiHistory=[];markJetskiChanged();renderJetskiRace();syncJetskiRace();toast('Nouveau tournoi prêt')}
+function resetJetskiTournament(){if(!confirm('Réinitialiser ENTIÈREMENT le tournoi partagé ?\n\nTous les participants, chronos, manches, éliminations, podium et historique seront supprimés pour toute l’équipe.'))return;jetskiRace=defaultJetskiRace();jetskiHistory=[];markJetskiChanged();renderJetskiRace();syncJetskiRace();toast('Nouveau tournoi entièrement réinitialisé ✓')}
 
 function renderPreviousWinners(){
   document.querySelector('#reset-game-winners').hidden=!isAdminName(operatorName);
