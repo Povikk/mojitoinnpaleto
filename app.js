@@ -221,11 +221,11 @@ function renderGame(){
 
 function normalizeJetskiColor(value,index=0){const match=JETSKI_COLORS.find(color=>color.toLowerCase()===String(value||'').toLowerCase());return match||JETSKI_COLORS[index%JETSKI_COLORS.length]}
 function jetskiPlayer(name='',index=0,id='',progress={}){return{id:id||createLocalId(),name:String(name||'').slice(0,40),color:JETSKI_COLORS[index]||JETSKI_COLORS[0],finish:null,index,races:Math.max(0,Number(progress.races)||0),lastHeat:Math.max(0,Number(progress.lastHeat)||0),order:Math.max(0,Number(progress.order)||0)}}
-function defaultJetskiRace(heat=1){return{version:4,phase:'qualifying',phaseHeat:1,heat,status:'idle',startedAt:0,elapsedBefore:0,racers:[0,1,2].map(index=>jetskiPlayer('',index,'',{order:index})),waiting:[],qualifyingResults:[],finalResults:[],qualifiers:[],history:[],podium:null,revision:'',clientId:''}}
+function defaultJetskiRace(heat=1){return{version:5,phase:'qualifying',phaseHeat:1,heat,status:'idle',startedAt:0,elapsedBefore:0,racers:[0,1,2].map(index=>jetskiPlayer('',index,'',{order:index})),waiting:[],qualifyingResults:[],finalResults:[],qualifiers:[],history:[],podium:null,revision:'',clientId:''}}
 function normalizeJetskiRace(saved){
   const base=defaultJetskiRace(Math.max(1,Number(saved?.heat)||1));
   if(!saved||!Array.isArray(saved.racers))return base;
-  if(Number(saved.version)!==4){
+  if(Number(saved.version)<4){
     const oldHistory=Array.isArray(saved.history)?saved.history:loadJetskiHistory(),seen=new Set(),players=[];
     [...saved.racers,...(Array.isArray(saved.waiting)?saved.waiting:[]),...(Array.isArray(saved.eliminated)?saved.eliminated:[])].forEach(item=>{const name=String(item?.name||'').trim(),key=name.toLocaleLowerCase('fr');if(name&&!seen.has(key)){seen.add(key);players.push(jetskiPlayer(name,0,item.id,item))}});
     base.racers=[0,1,2].map(index=>players[index]?{...players[index],index,color:JETSKI_COLORS[index],finish:null}:jetskiPlayer('',index,'',{order:index}));base.waiting=players.slice(3).map(player=>({...player,color:'',finish:null,index:-1}));base.history=oldHistory.slice(0,60);return base;
@@ -234,7 +234,18 @@ function normalizeJetskiRace(saved){
   const waiting=(Array.isArray(saved.waiting)?saved.waiting:[]).map((item,index)=>({...jetskiPlayer(item.name,0,item.id,item),color:'',finish:null,index:-1,order:Number.isFinite(Number(item.order))?Number(item.order):racers.length+index})).filter(item=>item.name);
   const normalizeResults=items=>(Array.isArray(items)?items:[]).map((item,index)=>({...jetskiPlayer(item.name,0,item.id,item),color:normalizeJetskiColor(item.color,index),finish:Number(item.finish)||0,index:-1})).filter(item=>item.name&&item.finish>0);
   const oldHistory=Array.isArray(saved.history)?saved.history:loadJetskiHistory();
-  return{...base,...saved,version:4,phase:['qualifying','finals','complete'].includes(saved.phase)?saved.phase:'qualifying',phaseHeat:Math.max(1,Number(saved.phaseHeat)||1),racers,waiting,qualifyingResults:normalizeResults(saved.qualifyingResults),finalResults:normalizeResults(saved.finalResults),qualifiers:normalizeResults(saved.qualifiers),history:oldHistory.slice(0,60),podium:Array.isArray(saved.podium)?normalizeResults(saved.podium).slice(0,4):null};
+  const normalized={...base,...saved,version:5,phase:['qualifying','finals','complete'].includes(saved.phase)?saved.phase:'qualifying',phaseHeat:Math.max(1,Number(saved.phaseHeat)||1),racers,waiting,qualifyingResults:normalizeResults(saved.qualifyingResults),finalResults:normalizeResults(saved.finalResults),qualifiers:normalizeResults(saved.qualifiers),history:oldHistory.slice(0,60),podium:Array.isArray(saved.podium)?normalizeResults(saved.podium).slice(0,4):null};
+  if(Number(saved.version)===4&&normalized.phase==='qualifying'){
+    const legacyTimes=[['Marc',88481],['Marlon',91424],['Jellal',81580]],available=[...racers,...waiting],existingNames=new Set(normalized.qualifyingResults.map(player=>player.name.toLocaleLowerCase('fr'))),legacyResults=legacyTimes.filter(([name])=>!existingNames.has(name.toLocaleLowerCase('fr'))).map(([name,finish],index)=>{const player=available.find(item=>item.name.localeCompare(name,'fr',{sensitivity:'base'})===0);return{...jetskiPlayer(name,index,player?.id||`ancienne-course-${name.toLocaleLowerCase('fr')}`,player||{}),color:normalizeJetskiColor(player?.color,index),finish,index:-1,races:Math.max(1,Number(player?.races)||0),lastHeat:1}});
+    if(legacyResults.length){normalized.qualifyingResults.push(...legacyResults);const legacyNames=new Set(legacyResults.map(player=>player.name.toLocaleLowerCase('fr')));normalized.waiting=normalized.waiting.filter(player=>!legacyNames.has(player.name.toLocaleLowerCase('fr')));const alreadyInHistory=normalized.history.some(item=>legacyTimes.every(([name])=>(item.results||[]).some(result=>String(result.name||'').localeCompare(name,'fr',{sensitivity:'base'})===0)));if(!alreadyInHistory)normalized.history.push({heat:1,phase:'qualifying',phaseHeat:1,date:Date.now(),results:legacyResults.map(player=>({...player}))})}
+  }
+  const active=racers.filter(player=>player.name),finishedBeforeMigration=Number(saved.version)===4&&normalized.phase==='qualifying'&&saved.status==='finished'&&active.length&&active.every(player=>player.finish!==null);
+  if(finishedBeforeMigration){
+    const completed=[...active].sort((a,b)=>a.finish-b.finish).map(player=>({...player,races:(Number(player.races)||0)+1,lastHeat:normalized.heat})),known=new Set(normalized.qualifyingResults.map(player=>player.id)),newCompleted=completed.filter(player=>!known.has(player.id));normalized.qualifyingResults.push(...newCompleted);if(newCompleted.length)normalized.history=[{heat:normalized.heat,phase:'qualifying',phaseHeat:normalized.phaseHeat,date:Date.now(),results:newCompleted.map(player=>({...player}))},...normalized.history];
+    if(normalized.waiting.length){const next=normalized.waiting.slice(0,3);normalized.heat+=1;normalized.phaseHeat+=1;normalized.status='idle';normalized.startedAt=0;normalized.elapsedBefore=0;normalized.racers=[0,1,2].map(index=>next[index]?{...jetskiPlayer(next[index].name,index,next[index].id,next[index]),color:JETSKI_COLORS[index]}:jetskiPlayer('',index,'',{order:index}));normalized.waiting=normalized.waiting.slice(3).map(player=>({...player,color:'',finish:null,index:-1}))}
+    else{const qualifiers=[...normalized.qualifyingResults].sort((a,b)=>a.finish-b.finish).slice(0,6);normalized.qualifiers=qualifiers.map(player=>({...player}));normalized.phase='finals';normalized.phaseHeat=1;normalized.heat+=1;normalized.status='idle';normalized.startedAt=0;normalized.elapsedBefore=0;normalized.finalResults=[];normalized.racers=[0,1,2].map(index=>qualifiers[index]?{...jetskiPlayer(qualifiers[index].name,index,qualifiers[index].id,qualifiers[index]),color:JETSKI_COLORS[index]}:jetskiPlayer('',index,'',{order:index}));normalized.waiting=qualifiers.slice(3).map(player=>({...player,color:'',finish:null,index:-1}))}
+  }
+  return normalized;
 }
 function loadJetskiRace(){try{return normalizeJetskiRace(JSON.parse(localStorage.getItem(JETSKI_RACE_KEY)||'null'))}catch{return defaultJetskiRace()}}
 function loadJetskiHistory(){try{const saved=JSON.parse(localStorage.getItem(JETSKI_HISTORY_KEY)||'[]');return Array.isArray(saved)?saved.slice(0,60):[]}catch{return[]}}
@@ -255,9 +266,9 @@ async function writeJetskiSnapshot(snapshot,quiet=false){
 }
 function applySharedJetskiRow(row){
   if(!row?.state)return;
-  jetskiSyncReady=true;jetskiRemoteUpdatedAt=row.updated_at||jetskiRemoteUpdatedAt;
-  if(row.state.clientId===jetskiClientId)return renderJetskiSyncStatus();
-  jetskiRace=normalizeJetskiRace(row.state);jetskiHistory=jetskiRace.history||[];saveJetskiRace();renderJetskiRace();
+  const needsMigration=Number(row.state.version)!==5;jetskiSyncReady=true;jetskiRemoteUpdatedAt=row.updated_at||jetskiRemoteUpdatedAt;
+  if(row.state.clientId===jetskiClientId&&!needsMigration)return renderJetskiSyncStatus();
+  jetskiRace=normalizeJetskiRace(row.state);jetskiHistory=jetskiRace.history||[];saveJetskiRace();renderJetskiRace();if(needsMigration){markJetskiChanged();syncJetskiRace(true)}
 }
 async function pollJetskiState(){if(!db||!operatorName||appMode!=='games'||document.visibilityState!=='visible'||jetskiPollBusy||jetskiSaveTimer)return;jetskiPollBusy=true;try{const{data,error}=await db.from('jetski_tournament_state').select('state,updated_at,updated_by').eq('id',1).maybeSingle();if(error){jetskiSyncReady=false;renderJetskiSyncStatus();return}jetskiSyncReady=true;if(data&&(!jetskiRemoteUpdatedAt||new Date(data.updated_at).getTime()>new Date(jetskiRemoteUpdatedAt).getTime()))applySharedJetskiRow(data);else renderJetskiSyncStatus()}catch(error){console.error('Vérification synchro jet-ski',error)}finally{jetskiPollBusy=false}}
 function renderJetskiSyncStatus(){const status=document.querySelector('#jetski-live-status');if(!status)return;status.classList.toggle('online',jetskiSyncReady);status.classList.toggle('offline',!jetskiSyncReady);status.querySelector('span').textContent=jetskiSyncReady?`Synchronisé en direct${jetskiRemoteUpdatedAt?` · ${new Date(jetskiRemoteUpdatedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`:''}`:'Mode local · installation Supabase requise'}
