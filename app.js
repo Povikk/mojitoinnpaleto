@@ -221,7 +221,7 @@ function renderGame(){
 
 function normalizeJetskiColor(value,index=0){const match=JETSKI_COLORS.find(color=>color.toLowerCase()===String(value||'').toLowerCase());return match||JETSKI_COLORS[index%JETSKI_COLORS.length]}
 function jetskiPlayer(name='',index=0,id='',progress={}){return{id:id||createLocalId(),name:String(name||'').slice(0,40),color:JETSKI_COLORS[index]||JETSKI_COLORS[0],finish:null,index,races:Math.max(0,Number(progress.races)||0),lastHeat:Math.max(0,Number(progress.lastHeat)||0),order:Math.max(0,Number(progress.order)||0)}}
-function defaultJetskiRace(heat=1){return{version:5,phase:'qualifying',phaseHeat:1,heat,status:'idle',startedAt:0,elapsedBefore:0,racers:[0,1,2].map(index=>jetskiPlayer('',index,'',{order:index})),waiting:[],qualifyingResults:[],finalResults:[],qualifiers:[],history:[],podium:null,revision:'',clientId:''}}
+function defaultJetskiRace(heat=1){return{version:6,phase:'qualifying',phaseHeat:1,heat,status:'idle',startedAt:0,elapsedBefore:0,racers:[0,1,2].map(index=>jetskiPlayer('',index,'',{order:index})),waiting:[],qualifyingResults:[],finalResults:[],qualifiers:[],history:[],podium:null,revision:'',clientId:''}}
 function normalizeJetskiRace(saved){
   const base=defaultJetskiRace(Math.max(1,Number(saved?.heat)||1));
   if(!saved||!Array.isArray(saved.racers))return base;
@@ -234,8 +234,8 @@ function normalizeJetskiRace(saved){
   const waiting=(Array.isArray(saved.waiting)?saved.waiting:[]).map((item,index)=>({...jetskiPlayer(item.name,0,item.id,item),color:'',finish:null,index:-1,order:Number.isFinite(Number(item.order))?Number(item.order):racers.length+index})).filter(item=>item.name);
   const normalizeResults=items=>(Array.isArray(items)?items:[]).map((item,index)=>({...jetskiPlayer(item.name,0,item.id,item),color:normalizeJetskiColor(item.color,index),finish:Number(item.finish)||0,index:-1})).filter(item=>item.name&&item.finish>0);
   const oldHistory=Array.isArray(saved.history)?saved.history:loadJetskiHistory();
-  const normalized={...base,...saved,version:5,phase:['qualifying','finals','complete'].includes(saved.phase)?saved.phase:'qualifying',phaseHeat:Math.max(1,Number(saved.phaseHeat)||1),racers,waiting,qualifyingResults:normalizeResults(saved.qualifyingResults),finalResults:normalizeResults(saved.finalResults),qualifiers:normalizeResults(saved.qualifiers),history:oldHistory.slice(0,60),podium:Array.isArray(saved.podium)?normalizeResults(saved.podium).slice(0,4):null};
-  if(Number(saved.version)===4&&normalized.phase==='qualifying'){
+  const normalized={...base,...saved,version:6,phase:['qualifying','finals','complete'].includes(saved.phase)?saved.phase:'qualifying',phaseHeat:Math.max(1,Number(saved.phaseHeat)||1),racers,waiting,qualifyingResults:normalizeResults(saved.qualifyingResults),finalResults:normalizeResults(saved.finalResults),qualifiers:normalizeResults(saved.qualifiers),history:oldHistory.slice(0,60),podium:Array.isArray(saved.podium)?normalizeResults(saved.podium).slice(0,4):null};
+  if(Number(saved.version)>=4&&Number(saved.version)<6&&normalized.phase==='qualifying'){
     const legacyTimes=[['Marc',88481],['Marlon',91424],['Jellal',81580]],available=[...racers,...waiting],existingNames=new Set(normalized.qualifyingResults.map(player=>player.name.toLocaleLowerCase('fr'))),legacyResults=legacyTimes.filter(([name])=>!existingNames.has(name.toLocaleLowerCase('fr'))).map(([name,finish],index)=>{const player=available.find(item=>item.name.localeCompare(name,'fr',{sensitivity:'base'})===0);return{...jetskiPlayer(name,index,player?.id||`ancienne-course-${name.toLocaleLowerCase('fr')}`,player||{}),color:normalizeJetskiColor(player?.color,index),finish,index:-1,races:Math.max(1,Number(player?.races)||0),lastHeat:1}});
     if(legacyResults.length){normalized.qualifyingResults.push(...legacyResults);const legacyNames=new Set(legacyResults.map(player=>player.name.toLocaleLowerCase('fr')));normalized.waiting=normalized.waiting.filter(player=>!legacyNames.has(player.name.toLocaleLowerCase('fr')));const alreadyInHistory=normalized.history.some(item=>legacyTimes.every(([name])=>(item.results||[]).some(result=>String(result.name||'').localeCompare(name,'fr',{sensitivity:'base'})===0)));if(!alreadyInHistory)normalized.history.push({heat:1,phase:'qualifying',phaseHeat:1,date:Date.now(),results:legacyResults.map(player=>({...player}))})}
   }
@@ -266,7 +266,7 @@ async function writeJetskiSnapshot(snapshot,quiet=false){
 }
 function applySharedJetskiRow(row){
   if(!row?.state)return;
-  const needsMigration=Number(row.state.version)!==5;jetskiSyncReady=true;jetskiRemoteUpdatedAt=row.updated_at||jetskiRemoteUpdatedAt;
+  const needsMigration=Number(row.state.version)!==6;jetskiSyncReady=true;jetskiRemoteUpdatedAt=row.updated_at||jetskiRemoteUpdatedAt;
   if(row.state.clientId===jetskiClientId&&!needsMigration)return renderJetskiSyncStatus();
   jetskiRace=normalizeJetskiRace(row.state);jetskiHistory=jetskiRace.history||[];saveJetskiRace();renderJetskiRace();if(needsMigration){markJetskiChanged();syncJetskiRace(true)}
 }
